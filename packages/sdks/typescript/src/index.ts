@@ -24,15 +24,15 @@
 
 // Types
 export type {
-  KoineConfig,
-  KoineUsage,
-  KoineStreamResult,
-  GenerateTextResponse,
-  GenerateObjectResponse,
-  ErrorResponse,
-  SSETextEvent,
-  SSEResultEvent,
-  SSEErrorEvent,
+	KoineConfig,
+	KoineUsage,
+	KoineStreamResult,
+	GenerateTextResponse,
+	GenerateObjectResponse,
+	ErrorResponse,
+	SSETextEvent,
+	SSEResultEvent,
+	SSEErrorEvent,
 } from "./types.js";
 
 // Errors

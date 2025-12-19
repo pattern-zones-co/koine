@@ -1,46 +1,39 @@
 {
-  "name": "@pattern-zones-co/koine-sdk",
-  "version": "1.0.0",
-  "description": "TypeScript SDK for Koine gateway",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-  "scripts": {
-    "build": "tsc",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "lint": "biome check ."
-  },
-  "dependencies": {
-    "zod": "3.25.76",
-    "zod-to-json-schema": "3.24.5"
-  },
-  "devDependencies": {
-    "@types/node": "25.0.2",
-    "@vitest/coverage-v8": "3.2.4",
-    "typescript": "5.9.3",
-    "vitest": "3.2.4"
-  },
-  "peerDependencies": {
-    "zod": ">=3.0.0"
-  },
-  "engines": {
-    "node": ">=20",
-    "bun": ">=1.1"
-  },
-  "keywords": [
-    "claude",
-    "claude-code",
-    "anthropic",
-    "ai",
-    "sdk",
-    "gateway"
-  ],
-  "license": "AGPL-3.0"
+	"name": "@pattern-zones-co/koine-sdk",
+	"version": "1.0.0",
+	"description": "TypeScript SDK for Koine gateway",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"scripts": {
+		"build": "tsc",
+		"test": "vitest",
+		"test:run": "vitest run",
+		"test:coverage": "vitest run --coverage",
+		"lint": "biome check ."
+	},
+	"dependencies": {
+		"zod": "3.25.76",
+		"zod-to-json-schema": "3.24.5"
+	},
+	"devDependencies": {
+		"@types/node": "25.0.2",
+		"@vitest/coverage-v8": "3.2.4",
+		"typescript": "5.9.3",
+		"vitest": "3.2.4"
+	},
+	"peerDependencies": {
+		"zod": ">=3.0.0"
+	},
+	"engines": {
+		"node": ">=20",
+		"bun": ">=1.1"
+	},
+	"keywords": ["claude", "claude-code", "anthropic", "ai", "sdk", "gateway"],
+	"license": "AGPL-3.0"
 }
