@@ -19,6 +19,7 @@
         "zod": "3.25.76",
       },
       "devDependencies": {
+        "@pattern-zones-co/koine-sdk": "workspace:*",
         "@types/express": "5.0.6",
         "@types/node": "25.0.2",
         "@types/supertest": "6.0.3",
