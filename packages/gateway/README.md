@@ -54,4 +54,4 @@ CMD ["claude-code-gateway"]
 
 ## License
 
-MIT
+See repository root.

@@ -247,4 +247,4 @@ pnpm test
 
 ## License
 
-MIT
+TBD - See [LICENSE](./LICENSE) once added.

@@ -130,4 +130,4 @@ try {
 
 ## License
 
-MIT
+See repository root.

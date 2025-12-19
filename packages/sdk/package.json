@@ -42,7 +42,7 @@
     "typescript",
     "zod"
   ],
-  "license": "MIT",
+  "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "https://github.com/pattern-zones-co/claude-code-gateway.git",
