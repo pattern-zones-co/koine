@@ -1,0 +1,9 @@
+#!/bin/sh
+# Commit message linting with commitlint
+
+if command -v bun >/dev/null 2>&1 && [ -f "node_modules/.bin/commitlint" ]; then
+    bun commitlint --edit "$1"
+else
+    echo "⚠️  commitlint not found. Skipping commit message validation."
+    echo "Run: bun install"
+fi
