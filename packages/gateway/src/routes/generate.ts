@@ -9,7 +9,7 @@ import {
   type ErrorResponse,
 } from "../types.js";
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * POST /generate-text

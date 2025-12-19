@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { spawn } from "node:child_process";
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * Health check endpoint that verifies:

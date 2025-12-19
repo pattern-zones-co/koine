@@ -1,11 +1,11 @@
 import { timingSafeEqual } from "node:crypto";
-import express from "express";
+import express, { type Application } from "express";
 import healthRouter from "./routes/health.js";
 import generateRouter from "./routes/generate.js";
 import streamRouter from "./routes/stream.js";
 import { logger } from "./logger.js";
 
-const app = express();
+const app: Application = express();
 const PORT = process.env.PORT || 3100;
 const WRAPPER_API_KEY = process.env.CLAUDE_CODE_WRAPPER_API_KEY;
 

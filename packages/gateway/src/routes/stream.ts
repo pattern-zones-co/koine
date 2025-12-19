@@ -28,7 +28,7 @@ interface StreamResultMessage {
 
 type StreamMessage = StreamAssistantMessage | StreamResultMessage;
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * POST /stream
