@@ -39,7 +39,7 @@ jobs:
             - priority:low: Low priority
 
             Steps:
-            1. Use `gh issue view ${{ github.event.issue.number }}` to read the issue
+            1. Use `gh issue view ${{ github.event.issue.number }} --json title,body,labels,comments` to read the issue
             2. Analyze the issue title and body to determine:
                - Type of issue (bug, enhancement, documentation, question)
                - Priority level based on impact and urgency
@@ -49,3 +49,4 @@ jobs:
 
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_args: '--allowedTools "Bash(gh issue:*)"'

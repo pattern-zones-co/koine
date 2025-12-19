@@ -3,8 +3,6 @@ name: CI
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-  push:
-    branches: [main]
 
 permissions:
   contents: read
@@ -46,5 +44,6 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: packages/gateway/coverage/lcov.info,packages/sdks/typescript/coverage/lcov.info
           fail_ci_if_error: false
