@@ -56,7 +56,7 @@ describe("SDK Integration Tests", () => {
 
 	beforeAll(async () => {
 		// Import SDK
-		const sdk = await import("@pattern-zones-co/koine-sdk");
+		const sdk = await import("@patternzones/koine-sdk");
 		generateText = sdk.generateText;
 		generateObject = sdk.generateObject;
 		streamText = sdk.streamText;

@@ -5,7 +5,7 @@
  *
  * @example
  * ```typescript
- * import { generateText, KoineConfig } from '@pattern-zones-co/koine-sdk';
+ * import { generateText, KoineConfig } from '@patternzones/koine-sdk';
  *
  * const config: KoineConfig = {
  *   baseUrl: 'http://localhost:3100',
