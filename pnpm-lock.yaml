@@ -48,7 +48,7 @@ importers:
         specifier: 3.2.4
         version: 3.2.4(@types/node@25.0.2)(tsx@4.21.0)
 
-  packages/sdk:
+  packages/sdks/typescript:
     dependencies:
       zod:
         specifier: 3.25.76
