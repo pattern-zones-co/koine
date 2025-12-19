@@ -65,29 +65,30 @@ Koine provides:
 ```
 koine/
 ├── packages/
-│   ├── gateway/               # HTTP gateway server
+│   ├── gateway/                     # HTTP gateway server
 │   │   ├── src/
-│   │   │   ├── index.ts       # Express app setup, auth middleware
-│   │   │   ├── cli.ts         # Claude CLI subprocess management
-│   │   │   ├── types.ts       # Request/response type definitions
-│   │   │   ├── logger.ts      # Logging utilities
+│   │   │   ├── index.ts             # Express app setup, auth middleware
+│   │   │   ├── cli.ts               # Claude CLI subprocess management
+│   │   │   ├── types.ts             # Request/response type definitions
+│   │   │   ├── logger.ts            # Logging utilities
 │   │   │   └── routes/
-│   │   │       ├── generate.ts  # /generate-text and /generate-object
-│   │   │       ├── stream.ts    # /stream (SSE streaming)
-│   │   │       └── health.ts    # /health endpoint
+│   │   │       ├── generate.ts      # /generate-text and /generate-object
+│   │   │       ├── stream.ts        # /stream (SSE streaming)
+│   │   │       └── health.ts        # /health endpoint
 │   │   └── __tests__/
-│   └── sdk/                   # TypeScript client SDK
-│       ├── src/
-│       │   ├── client.ts      # HTTP client functions
-│       │   ├── types.ts       # Type definitions
-│       │   ├── errors.ts      # Custom error classes
-│       │   └── index.ts       # Public exports
-│       └── __tests__/
-├── claude-assets/             # Skills and commands for the Docker container
+│   └── sdks/
+│       └── typescript/              # TypeScript client SDK
+│           ├── src/
+│           │   ├── client.ts        # HTTP client functions
+│           │   ├── types.ts         # Type definitions
+│           │   ├── errors.ts        # Custom error classes
+│           │   └── index.ts         # Public exports
+│           └── __tests__/
+├── claude-assets/                   # Skills and commands for Docker
 │   ├── skills/
 │   └── commands/
-├── Dockerfile                 # Hardened container build
-└── docker-compose.yml         # Docker deployment example
+├── Dockerfile                       # Hardened container build
+└── docker-compose.yml               # Docker deployment example
 ```
 
 ## Quick Start
