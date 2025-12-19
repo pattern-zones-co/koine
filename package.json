@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"description": "Koine - HTTP gateway and SDK for Claude Code CLI",
+	"workspaces": ["packages/*", "packages/sdks/*"],
 	"scripts": {
 		"dev": "bun run --filter '@pattern-zones-co/*' dev",
 		"build": "bun run --filter '@pattern-zones-co/*' build",
