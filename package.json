@@ -2,26 +2,18 @@
   "name": "claude-code-gateway",
   "version": "1.0.0",
   "private": true,
-  "description": "HTTP gateway for Claude Code CLI with optional TypeScript SDK",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/pattern-zones-co/claude-code-gateway.git"
-  },
-  "workspaces": [
-    "packages/*",
-    "examples/*"
-  ],
+  "description": "Claude Code Gateway - HTTP wrapper and SDK for Claude Code CLI",
   "scripts": {
-    "build": "pnpm -r build",
     "dev": "pnpm --filter @pattern-zones-co/claude-code-gateway dev",
-    "test": "pnpm -r test",
+    "build": "pnpm --filter @pattern-zones-co/claude-code-gateway build",
+    "start": "pnpm --filter @pattern-zones-co/claude-code-gateway start",
+    "test": "pnpm -r test:run",
+    "test:watch": "pnpm -r test",
+    "test:coverage": "pnpm -r test:coverage",
     "lint": "pnpm -r lint"
   },
-  "devDependencies": {
-    "typescript": "^5.9.0"
-  },
-  "packageManager": "pnpm@9.0.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "bun": ">=1.1"
   }
 }

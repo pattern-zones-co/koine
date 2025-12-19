@@ -1,37 +1,47 @@
 name: claude-code-gateway
+
 services:
   gateway:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "${PORT:-3100}:3100"
+      - "${GATEWAY_PORT:-3100}:3100"
     environment:
       PORT: 3100
       # HOME required for Claude CLI to find its config directory
       HOME: /home/bun
-      # API key for authenticating requests to the gateway
-      CLAUDE_CODE_GATEWAY_API_KEY: ${CLAUDE_CODE_GATEWAY_API_KEY}
-      # Claude auth: set CLAUDE_CODE_OAUTH_TOKEN for Max subscription,
-      # or ANTHROPIC_API_KEY for API auth. If both are set, OAuth takes precedence.
+      # Authentication for the gateway API
+      CLAUDE_CODE_GATEWAY_API_KEY: ${CLAUDE_CODE_GATEWAY_API_KEY:-}
+      # Claude auth: set CLAUDE_CODE_OAUTH_TOKEN for Max subscription, or ANTHROPIC_API_KEY for API auth
+      # If both are set, OAuth token takes precedence (see cli.ts buildClaudeEnv)
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     volumes:
-      # Named volume for Claude CLI data (non-root bun user)
-      - claude-data:/home/bun/.claude
+      # Named volume for Claude CLI data
+      - claude-code-data:/home/bun/.claude
+      # WARNING: Bind-mounting ~/.claude is NOT SAFE for production.
+      # It exposes credentials AND links all user-scoped Claude Code config
+      # (slash commands, skills, MCP servers, etc.) which may be inappropriate.
+      # Only use for local development/testing. For production:
+      # - Set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY in .env
+      # - Use project-scoped assets only (future: build-time asset mounting)
     # Security hardening
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
     # Note: read_only disabled because Claude CLI needs to write to /home/bun/.claude.json
+    # Other security hardening (no-new-privileges, cap_drop) remains in place
     read_only: false
     tmpfs:
       - /tmp:mode=1777,size=100m
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-    restart: unless-stopped
 
 volumes:
-  claude-data:
+  claude-code-data:

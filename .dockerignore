@@ -6,7 +6,7 @@ node_modules
 pnpm-store
 
 # Build outputs / caches
-dist
+.next
 .turbo
 out
 coverage
@@ -26,10 +26,10 @@ coverage
 
 # Docker
 Dockerfile*
-docker-compose*.yml
 !.dockerignore
 
 # Misc
 *.local
 _tmp
 .tmp
+

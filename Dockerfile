@@ -14,8 +14,10 @@ FROM oven/bun:1.3.3-slim AS builder
 
 WORKDIR /app
 
-# Copy package files for the monorepo
-COPY package.json pnpm-workspace.yaml ./
+# Copy package files (root workspace + gateway package)
+COPY package.json ./
+COPY pnpm-workspace.yaml ./
+COPY bun.lock* ./
 COPY packages/gateway/package.json ./packages/gateway/
 
 # Install dependencies (including dev deps for build)
@@ -26,12 +28,11 @@ RUN bun install --frozen-lockfile || bun install
 COPY packages/gateway/tsconfig.json ./packages/gateway/
 COPY packages/gateway/src ./packages/gateway/src
 
-# Build TypeScript
-WORKDIR /app/packages/gateway
-RUN bun run build
+# Build TypeScript using tsc (preserves module structure for Express compatibility)
+RUN cd packages/gateway && bun run build
 
 # Re-install with production deps only
-RUN rm -rf node_modules && bun install --production
+RUN rm -rf node_modules packages/gateway/node_modules && bun install --production
 
 # ----- Stage 2: Runtime -----
 FROM oven/bun:1.3.3-slim
@@ -58,12 +59,17 @@ RUN bun install -g @anthropic-ai/claude-code
 WORKDIR /app
 
 # Copy built artifacts with bun user ownership
+COPY --from=builder --chown=bun:bun /app/package.json ./
+COPY --from=builder --chown=bun:bun /app/node_modules ./node_modules
 COPY --from=builder --chown=bun:bun /app/packages/gateway/package.json ./packages/gateway/
-COPY --from=builder --chown=bun:bun /app/packages/gateway/node_modules ./packages/gateway/node_modules
 COPY --from=builder --chown=bun:bun /app/packages/gateway/dist ./packages/gateway/dist
 
 # Create Claude CLI data directory for the bun user
 RUN mkdir -p /home/bun/.claude && chown -R bun:bun /home/bun/.claude
+
+# Copy Claude skills/commands to the Claude CLI config directory
+# These enable Claude Code to use custom tools and slash commands
+COPY --chown=bun:bun claude-assets /home/bun/.claude
 
 # Switch to non-root user
 USER bun
@@ -76,4 +82,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3100/health || exit 1
 
 # Start the service
-CMD ["bun", "run", "/app/packages/gateway/dist/index.js"]
+CMD ["bun", "run", "packages/gateway/dist/index.js"]

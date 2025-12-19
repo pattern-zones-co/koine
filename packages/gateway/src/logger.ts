@@ -10,7 +10,7 @@ function safeStringify(obj: unknown): string {
 }
 
 /**
- * Simple logger for the Claude Code Gateway service.
+ * Simple logger for the Claude Code wrapper service.
  * Uses stderr for logging to avoid interfering with stdout data.
  */
 export const logger = {

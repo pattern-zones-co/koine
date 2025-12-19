@@ -1,95 +1,144 @@
 # Claude Code Gateway
 
-HTTP gateway for [Claude Code CLI](https://github.com/anthropics/claude-code) with optional TypeScript SDK.
-
-**Turn Claude Code into a REST API** that any application can call with a simple HTTP request.
-
-> ⚠️ **Important: Review Anthropic's Terms of Service**
->
-> This gateway supports two authentication methods for Claude CLI:
-> - **Subscription plans** (Claude Pro/Max) via OAuth token
-> - **API keys** via Anthropic API
->
-> These have **different terms of use and allowable applications**. Subscription plans may have restrictions on commercial use, automation, or other use cases that do not apply to API key usage.
->
-> **You are responsible for reviewing and complying with [Anthropic's Terms of Service](https://www.anthropic.com/legal/consumer-terms) and the specific terms of your subscription or API agreement before using this gateway.**
-
-## Quick Start
-
-### 1. Start the Gateway
-
-```bash
-# Clone the repository
-git clone https://github.com/pattern-zones-co/claude-code-gateway.git
-cd claude-code-gateway
-
-# Install dependencies
-pnpm install
-
-# Set your API key (generate with: openssl rand -hex 32)
-export CLAUDE_CODE_GATEWAY_API_KEY="your-secret-key"
-
-# Start the gateway
-pnpm dev
-```
-
-The gateway runs on `http://localhost:3100` by default.
-
-### 2. Make a Request
-
-**Using fetch (any language):**
-
-```javascript
-const response = await fetch('http://localhost:3100/generate-text', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer your-secret-key'
-  },
-  body: JSON.stringify({
-    prompt: 'Explain recursion in one sentence'
-  })
-});
-
-const { text } = await response.json();
-console.log(text);
-```
-
-**Using the TypeScript SDK (type-safe):**
-
-```typescript
-import { z } from 'zod';
-import { ClaudeCodeClient } from '@pattern-zones-co/claude-code-gateway-sdk';
-
-const client = new ClaudeCodeClient({
-  baseUrl: 'http://localhost:3100',
-  authKey: 'your-secret-key'
-});
-
-// Generate text
-const { text } = await client.generateText({
-  prompt: 'Explain recursion'
-});
-
-// Generate a typed object
-const UserSchema = z.object({
-  name: z.string(),
-  email: z.string().email()
-});
-
-const { object } = await client.generateObject({
-  prompt: 'Extract: John at john@example.com',
-  schema: UserSchema
-});
-// object is typed as { name: string; email: string }
-```
+An HTTP gateway service that exposes [Claude Code CLI](https://github.com/anthropics/claude-code) as a REST API, plus a TypeScript SDK for easy integration.
 
 ## Packages
 
 | Package | Description |
 |---------|-------------|
-| [`@pattern-zones-co/claude-code-gateway`](./packages/gateway) | HTTP gateway server |
-| [`@pattern-zones-co/claude-code-gateway-sdk`](./packages/sdk) | TypeScript client SDK |
+| `@pattern-zones-co/claude-code-gateway` | HTTP gateway server wrapping Claude Code CLI |
+| `@pattern-zones-co/claude-code-gateway-sdk` | TypeScript SDK for gateway clients |
+
+## Overview
+
+Claude Code Gateway provides:
+
+- **REST API endpoints** for text generation, object extraction, and streaming
+- **Session management** for multi-turn conversations
+- **Health monitoring** with CLI availability checks
+- **Extensible skills system** for domain-specific capabilities
+- **Docker deployment** with hardened security configuration
+- **TypeScript SDK** for type-safe client integration
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Your Application                                                       │
+│  (Using SDK or HTTP client)                                             │
+└─────────────────────────────────────────────────────────────────────────┘
+                            │
+                            ▼ HTTP REST API
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Claude Code Gateway (this service)                                     │
+│  ┌─────────────────────────────────────────────────────────────────────┐│
+│  │ Core HTTP Server (Express)                                          ││
+│  │ - /generate-text    → Text generation                               ││
+│  │ - /generate-object  → Structured object extraction                  ││
+│  │ - /stream           → Server-Sent Events streaming                  ││
+│  │ - /health           → Health check with CLI status                  ││
+│  └─────────────────────────────────────────────────────────────────────┘│
+│                           │                                             │
+│                           ▼ Subprocess                                  │
+│  ┌─────────────────────────────────────────────────────────────────────┐│
+│  │ Claude Code CLI                                                     ││
+│  │ + Skills (loaded from claude-assets/)                               ││
+│  └─────────────────────────────────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## Project Structure
+
+```
+claude-code-gateway/
+├── packages/
+│   ├── gateway/               # HTTP gateway server
+│   │   ├── src/
+│   │   │   ├── index.ts       # Express app setup, auth middleware
+│   │   │   ├── cli.ts         # Claude CLI subprocess management
+│   │   │   ├── types.ts       # Request/response type definitions
+│   │   │   ├── logger.ts      # Logging utilities
+│   │   │   └── routes/
+│   │   │       ├── generate.ts  # /generate-text and /generate-object
+│   │   │       ├── stream.ts    # /stream (SSE streaming)
+│   │   │       └── health.ts    # /health endpoint
+│   │   └── __tests__/
+│   └── sdk/                   # TypeScript client SDK
+│       ├── src/
+│       │   ├── client.ts      # HTTP client functions
+│       │   ├── types.ts       # Type definitions
+│       │   ├── errors.ts      # Custom error classes
+│       │   └── index.ts       # Public exports
+│       └── __tests__/
+├── claude-assets/             # Skills and commands for the Docker container
+│   ├── skills/
+│   └── commands/
+├── Dockerfile                 # Hardened container build
+├── docker-compose.yml         # Docker deployment example
+└── pnpm-workspace.yaml        # Monorepo configuration
+```
+
+## Quick Start
+
+### Using the SDK
+
+```typescript
+import { generateText, ClaudeCodeGatewayConfig } from '@pattern-zones-co/claude-code-gateway-sdk';
+
+const config: ClaudeCodeGatewayConfig = {
+  baseUrl: 'http://localhost:3100',
+  timeout: 300000,
+  authKey: 'your-api-key',
+  model: 'sonnet',
+};
+
+const result = await generateText(config, {
+  prompt: 'Hello, how are you?',
+  system: 'You are a helpful assistant.',
+});
+
+console.log(result.text);
+console.log(result.usage);
+```
+
+### Streaming
+
+```typescript
+import { streamText } from '@pattern-zones-co/claude-code-gateway-sdk';
+
+const result = await streamText(config, {
+  prompt: 'Write a short story',
+});
+
+// Stream text chunks as they arrive
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+
+// Get final results
+const fullText = await result.text;
+const usage = await result.usage;
+```
+
+### Structured Output
+
+```typescript
+import { generateObject } from '@pattern-zones-co/claude-code-gateway-sdk';
+import { z } from 'zod';
+
+const PersonSchema = z.object({
+  name: z.string(),
+  age: z.number(),
+  email: z.string().email(),
+});
+
+const result = await generateObject(config, {
+  prompt: 'Extract person info: John is 30 years old, email: john@example.com',
+  schema: PersonSchema,
+});
+
+console.log(result.object); // { name: "John", age: 30, email: "john@example.com" }
+```
 
 ## API Reference
 
@@ -97,156 +146,224 @@ const { object } = await client.generateObject({
 
 All endpoints (except `/health`) require Bearer token authentication:
 
-```
-Authorization: Bearer <CLAUDE_CODE_GATEWAY_API_KEY>
-```
-
-### Endpoints
-
-#### `GET /health`
-
-Health check endpoint (no auth required).
-
 ```bash
-curl http://localhost:3100/health
+curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:3100/generate-text
 ```
 
-#### `POST /generate-text`
+### `POST /generate-text`
 
-Generate plain text response.
+Generate text from a prompt.
 
-```bash
-curl -X POST http://localhost:3100/generate-text \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-key" \
-  -d '{
-    "prompt": "Explain quantum computing",
-    "system": "Be concise",
-    "model": "sonnet"
-  }'
+**Request:**
+```json
+{
+  "prompt": "Explain quantum computing in simple terms",
+  "system": "You are a helpful science teacher",
+  "sessionId": "optional-session-id",
+  "model": "sonnet"
+}
 ```
 
 **Response:**
 ```json
 {
-  "text": "Quantum computing uses...",
-  "usage": { "inputTokens": 10, "outputTokens": 50, "totalTokens": 60 },
-  "sessionId": "abc-123"
+  "text": "Quantum computing is...",
+  "usage": {
+    "inputTokens": 25,
+    "outputTokens": 150,
+    "totalTokens": 175
+  },
+  "sessionId": "session-uuid"
 }
 ```
 
-#### `POST /generate-object`
+### `POST /generate-object`
 
-Generate structured JSON matching a schema.
+Extract structured data using a JSON schema.
 
-```bash
-curl -X POST http://localhost:3100/generate-object \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-key" \
-  -d '{
-    "prompt": "Extract: Meeting with John at 3pm",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "person": { "type": "string" },
-        "time": { "type": "string" }
-      },
-      "required": ["person", "time"]
+**Request:**
+```json
+{
+  "prompt": "Extract the person's name and age from: John is 30 years old",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string" },
+      "age": { "type": "number" }
     }
-  }'
+  }
+}
 ```
 
 **Response:**
 ```json
 {
-  "object": { "person": "John", "time": "3pm" },
-  "rawText": "{\"person\":\"John\",\"time\":\"3pm\"}",
-  "usage": { "inputTokens": 20, "outputTokens": 15, "totalTokens": 35 },
-  "sessionId": "abc-123"
+  "object": { "name": "John", "age": 30 },
+  "rawText": "{\"name\": \"John\", \"age\": 30}",
+  "usage": { "inputTokens": 40, "outputTokens": 20, "totalTokens": 60 },
+  "sessionId": "session-uuid"
 }
 ```
 
-#### `POST /stream`
+### `POST /stream`
 
-Stream text response via Server-Sent Events.
+Stream responses via Server-Sent Events (SSE).
 
-```bash
-curl -X POST http://localhost:3100/stream \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-key" \
-  -d '{"prompt": "Write a poem"}'
+**Request:**
+```json
+{
+  "prompt": "Write a short story about a robot",
+  "system": "You are a creative writer"
+}
 ```
 
-**SSE Events:**
-- `session` - `{ sessionId: "..." }` (first event)
-- `text` - `{ text: "chunk..." }` (content chunks)
-- `result` - `{ sessionId: "...", usage: {...} }` (final stats)
-- `error` - `{ error: "...", code: "..." }` (on failure)
-- `done` - `{ code: 0 }` (stream complete)
+**Response (SSE events):**
+```
+event: session
+data: {"sessionId": "session-uuid"}
+
+event: text
+data: {"text": "Once upon"}
+
+event: text
+data: {"text": " a time..."}
+
+event: result
+data: {"sessionId": "session-uuid", "usage": {...}}
+
+event: done
+data: {"code": 0, "signal": null}
+```
+
+### `GET /health`
+
+Health check endpoint (no authentication required).
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "cli": {
+    "available": true,
+    "version": "1.0.34"
+  }
+}
+```
 
 ## Environment Variables
 
-### Gateway
+### Required
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `CLAUDE_CODE_GATEWAY_API_KEY` | Yes | API key for authenticating requests |
-| `PORT` | No | Server port (default: 3100) |
-| `CLAUDE_CODE_OAUTH_TOKEN` | No | OAuth token for Claude Max subscribers |
-| `ANTHROPIC_API_KEY` | No | API key (used if OAuth token not set) |
-| `CLAUDE_CODE_GATEWAY_*` | No | Any env var with this prefix passes through to Claude CLI |
+| Variable | Description |
+|----------|-------------|
+| `CLAUDE_CODE_GATEWAY_API_KEY` | Bearer token for authenticating API requests |
 
-### Custom Environment Passthrough
+### Claude Authentication (one required)
 
-Any environment variable prefixed with `CLAUDE_CODE_GATEWAY_` is automatically passed through to the Claude CLI subprocess. This enables custom Claude skills to access external services:
+| Variable | Description |
+|----------|-------------|
+| `CLAUDE_CODE_OAUTH_TOKEN` | OAuth token (for Claude Max subscribers) |
+| `ANTHROPIC_API_KEY` | API key (used if OAuth token not present) |
 
-```bash
-# These will be available in Claude CLI environment
-export CLAUDE_CODE_GATEWAY_MY_API_URL="https://api.example.com"
-export CLAUDE_CODE_GATEWAY_MY_API_KEY="secret"
-```
+### Optional
 
-## Examples
-
-See the [examples](./examples) directory:
-
-- [basic-fetch](./examples/basic-fetch) - Plain JavaScript with fetch
-- [typescript-zod](./examples/typescript-zod) - TypeScript SDK with Zod schemas
-
-## Architecture
-
-```
-┌─────────────────┐     HTTP      ┌──────────────────┐    subprocess    ┌─────────────┐
-│  Your App       │  ─────────►   │     Gateway      │  ────────────►   │ Claude CLI  │
-│  (fetch/SDK)    │  ◄─────────   │    (Express)     │  ◄────────────   │             │
-└─────────────────┘    JSON       └──────────────────┘      JSON        └─────────────┘
-```
-
-The gateway spawns Claude CLI as a subprocess for each request, parsing the JSON output and returning it via HTTP. This enables:
-
-- **Network access**: Call Claude Code from any machine or container
-- **Language agnostic**: Any language with HTTP support works
-- **Type safety**: Optional TypeScript SDK with Zod validation
-- **Session continuity**: Multi-turn conversations via session IDs
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GATEWAY_PORT` | `3100` | HTTP server port |
 
 ## Development
+
+### Prerequisites
+
+- Node.js >= 20 or Bun >= 1.1
+- pnpm (for workspace management)
+- Claude Code CLI installed (`bun install -g @anthropic-ai/claude-code`)
+
+### Setup
 
 ```bash
 # Install dependencies
 pnpm install
 
-# Start gateway in dev mode
-pnpm dev
+# Set required environment variables
+cp .env.example .env
+# Edit .env with your values
 
-# Build all packages
-pnpm build
+# Run gateway in development mode
+pnpm dev
 
 # Run tests
 pnpm test
+
+# Build all packages
+pnpm build
 ```
+
+## Docker Deployment
+
+### Using Docker Compose
+
+```bash
+# Copy and edit environment file
+cp .env.example .env
+
+# Start the gateway
+docker compose up -d gateway
+
+# Check health
+curl http://localhost:3100/health
+```
+
+### Build and Run Manually
+
+```bash
+# Build
+docker build -t claude-code-gateway .
+
+# Run
+docker run -d \
+  -p 3100:3100 \
+  -e CLAUDE_CODE_GATEWAY_API_KEY=your-api-key \
+  -e ANTHROPIC_API_KEY=your-anthropic-key \
+  claude-code-gateway
+```
+
+### Security Features
+
+The Docker image includes several hardening measures:
+
+- Multi-stage build (smaller attack surface)
+- Non-root user execution (`bun` user, UID 1000)
+- Minimal base image (Bun slim ~100MB)
+- Security options: `no-new-privileges`, `cap_drop: ALL`
+- Health check endpoint
+- Read-only filesystem with tmpfs for temporary files
+
+## Skills System
+
+Claude Code supports **skills** - markdown files that teach Claude how to use domain-specific tools. Skills are placed in `claude-assets/skills/` and copied into the Docker container at build time.
+
+### Adding Custom Skills
+
+1. Create a skill directory: `claude-assets/skills/your-skill-name/`
+2. Add a `SKILL.md` file with:
+   - YAML frontmatter (`name`, `description`, `allowed-tools`)
+   - Instructions for Claude on when and how to use the skill
+   - API documentation, examples, and best practices
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| `TIMEOUT_ERROR` | CLI execution timed out |
+| `CLI_EXIT_ERROR` | CLI exited with non-zero code |
+| `SPAWN_ERROR` | Failed to spawn CLI process |
+| `PARSE_ERROR` | Failed to parse CLI output |
 
 ## License
 
-Dual licensed under [AGPL-3.0](./LICENSE) and a commercial license.
+See [LICENSE](LICENSE) for details.
 
-A commercial license is only required if you wish to keep your source code modifications private. Contact licensing@patternzones.co for commercial licensing.
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.

@@ -7,10 +7,12 @@ import { logger } from "./logger.js";
  * Builds environment variables for Claude CLI with auth precedence.
  * Prefers OAuth token (Max subscription) over API key when both are present.
  *
- * Automatically passes through any CLAUDE_CODE_GATEWAY_* environment variables
- * to enable custom integrations without code changes.
+ * Also passes through tool proxy variables for Claude skills that need to
+ * invoke Inbox Zero API tools.
  */
-export function buildClaudeEnv(): NodeJS.ProcessEnv {
+export function buildClaudeEnv(options?: {
+  userEmail?: string;
+}): NodeJS.ProcessEnv {
   const env = { ...process.env };
 
   // Prefer OAuth token for Max subscribers over API key
@@ -18,13 +20,16 @@ export function buildClaudeEnv(): NodeJS.ProcessEnv {
     env.ANTHROPIC_API_KEY = undefined;
   }
 
-  // Pass through all CLAUDE_CODE_GATEWAY_* env vars for custom integrations
-  // These enable custom skills or tools to access external services
-  // e.g., CLAUDE_CODE_GATEWAY_API_URL, CLAUDE_CODE_GATEWAY_USER_EMAIL, etc.
-  for (const [key, value] of Object.entries(process.env)) {
-    if (key.startsWith("CLAUDE_CODE_GATEWAY_") && value) {
-      env[key] = value;
-    }
+  // Pass through tool proxy variables for Claude skills
+  // These enable the inbox-zero-tools skill to invoke the LLM Tool Proxy API
+  if (process.env.INBOX_ZERO_API_URL) {
+    env.INBOX_ZERO_API_URL = process.env.INBOX_ZERO_API_URL;
+  }
+  if (process.env.LLM_TOOL_PROXY_TOKEN) {
+    env.LLM_TOOL_PROXY_TOKEN = process.env.LLM_TOOL_PROXY_TOKEN;
+  }
+  if (options?.userEmail) {
+    env.INBOX_ZERO_USER_EMAIL = options.userEmail;
   }
 
   return env;
@@ -43,6 +48,8 @@ export interface ClaudeCliOptions {
   timeoutMs?: number;
   /** Model alias (e.g., 'sonnet', 'haiku') or full name */
   model?: string;
+  /** User email for tool proxy access (enables Claude skills to call Inbox Zero tools) */
+  userEmail?: string;
 }
 
 export interface ClaudeCliResult {
@@ -72,7 +79,7 @@ export async function executeClaudeCli(
 
     const claude = spawn("claude", args, {
       stdio: ["pipe", "pipe", "pipe"],
-      env: buildClaudeEnv(),
+      env: buildClaudeEnv({ userEmail: options.userEmail }),
     });
 
     // Set up execution timeout

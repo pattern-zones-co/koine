@@ -1,92 +1,47 @@
 /**
- * Configuration for the Claude Code Gateway client.
+ * Configuration for connecting to a Claude Code Gateway service.
  */
-export interface ClaudeCodeClientConfig {
-  /** Base URL of the gateway server (e.g., "http://localhost:3100") */
+export interface ClaudeCodeGatewayConfig {
+  /** Base URL of the gateway service (e.g., "http://localhost:3100") */
   baseUrl: string;
-  /** API key for authentication (Bearer token) */
+  /** Request timeout in milliseconds */
+  timeout: number;
+  /** Authentication key for the gateway service (required) */
   authKey: string;
-  /** Request timeout in milliseconds (default: 120000) */
-  timeout?: number;
-  /** Default model to use (e.g., "sonnet", "haiku") */
+  /** Model alias (e.g., 'sonnet', 'haiku') or full model name */
   model?: string;
 }
 
 /**
- * Usage information from Claude Code Gateway.
+ * Usage information from Claude Code gateway service.
  */
-export interface Usage {
+export interface ClaudeCodeUsage {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
 }
 
 /**
- * Response from text generation.
+ * Response from generate-text endpoint.
  */
-export interface GenerateTextResult {
+export interface GenerateTextResponse {
   text: string;
-  usage: Usage;
+  usage: ClaudeCodeUsage;
   sessionId: string;
 }
 
 /**
- * Response from object generation.
+ * Response from generate-object endpoint.
  */
-export interface GenerateObjectResult<T> {
-  object: T;
+export interface GenerateObjectResponse {
+  object: unknown;
   rawText: string;
-  usage: Usage;
+  usage: ClaudeCodeUsage;
   sessionId: string;
 }
 
 /**
- * Result from streaming text generation.
- */
-export interface StreamResult {
-  /** ReadableStream of text chunks as they arrive */
-  textStream: ReadableStream<string>;
-  /** Session ID for conversation continuity (resolves early in stream) */
-  sessionId: Promise<string>;
-  /** Usage stats (resolves when stream completes) */
-  usage: Promise<Usage>;
-  /** Full accumulated text (resolves when stream completes) */
-  text: Promise<string>;
-}
-
-/**
- * Options for text generation.
- */
-export interface GenerateTextOptions {
-  prompt: string;
-  system?: string;
-  sessionId?: string;
-  model?: string;
-}
-
-/**
- * Options for object generation with Zod schema.
- */
-export interface GenerateObjectOptions<T> {
-  prompt: string;
-  schema: import("zod").ZodSchema<T>;
-  system?: string;
-  sessionId?: string;
-  model?: string;
-}
-
-/**
- * Options for streaming text generation.
- */
-export interface StreamTextOptions {
-  prompt: string;
-  system?: string;
-  sessionId?: string;
-  model?: string;
-}
-
-/**
- * Error response from the gateway.
+ * Error response from Claude Code gateway service.
  */
 export interface ErrorResponse {
   error: string;
@@ -95,20 +50,32 @@ export interface ErrorResponse {
 }
 
 /**
- * Text response from the gateway.
+ * Result from streaming text generation.
  */
-export interface TextResponse {
-  text: string;
-  usage: Usage;
-  sessionId: string;
+export interface ClaudeCodeStreamResult {
+  /** ReadableStream of text chunks as they arrive */
+  textStream: ReadableStream<string>;
+  /** Session ID for conversation continuity (resolves early in stream, after session event) */
+  sessionId: Promise<string>;
+  /** Usage stats (resolves when stream completes via result event) */
+  usage: Promise<ClaudeCodeUsage>;
+  /** Full accumulated text (resolves when stream completes) */
+  text: Promise<string>;
 }
 
 /**
- * Object response from the gateway.
+ * SSE event types from Claude Code gateway /stream endpoint.
  */
-export interface ObjectResponse {
-  object: unknown;
-  rawText: string;
-  usage: Usage;
+export interface SSETextEvent {
+  text: string;
+}
+
+export interface SSEResultEvent {
   sessionId: string;
+  usage: ClaudeCodeUsage;
+}
+
+export interface SSEErrorEvent {
+  error: string;
+  code?: string;
 }
