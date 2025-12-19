@@ -58,12 +58,21 @@ if [ -n "$STAGED_TS_FILES" ] || [ -n "$STAGED_JSON_FILES" ]; then
     fi
 fi
 
-# TypeScript type checking
+# TypeScript type checking (no emit, just check types)
 if [ -n "$STAGED_TS_FILES" ]; then
     echo "🔍 Running TypeScript type checking..."
 
     if [ -d "node_modules" ]; then
-        if ! bun run build 2>&1; then
+        # Type check each package without emitting files
+        TYPE_CHECK_FAILED=0
+        for pkg_dir in packages/gateway packages/sdks/typescript; do
+            if [ -f "$pkg_dir/tsconfig.json" ]; then
+                if ! bun tsc --noEmit -p "$pkg_dir/tsconfig.json" 2>&1; then
+                    TYPE_CHECK_FAILED=1
+                fi
+            fi
+        done
+        if [ $TYPE_CHECK_FAILED -eq 1 ]; then
             echo "❌ TypeScript errors found! Please fix them before committing."
             CHECKS_FAILED=1
         else
