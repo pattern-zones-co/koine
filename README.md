@@ -4,6 +4,16 @@ HTTP gateway for [Claude Code CLI](https://github.com/anthropics/claude-code) wi
 
 **Turn Claude Code into a REST API** that any application can call with a simple HTTP request.
 
+> ⚠️ **Important: Review Anthropic's Terms of Service**
+>
+> This gateway supports two authentication methods for Claude CLI:
+> - **Subscription plans** (Claude Pro/Max) via OAuth token
+> - **API keys** via Anthropic API
+>
+> These have **different terms of use and allowable applications**. Subscription plans may have restrictions on commercial use, automation, or other use cases that do not apply to API key usage.
+>
+> **You are responsible for reviewing and complying with [Anthropic's Terms of Service](https://www.anthropic.com/legal/consumer-terms) and the specific terms of your subscription or API agreement before using this gateway.**
+
 ## Quick Start
 
 ### 1. Start the Gateway
