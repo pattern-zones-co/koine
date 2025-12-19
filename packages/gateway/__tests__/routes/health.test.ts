@@ -123,6 +123,7 @@ describe("Health Route", () => {
 
 		it(
 			"returns unhealthy status when CLI check times out",
+			{ timeout: 10_000 },
 			async () => {
 				vi.useFakeTimers({ shouldAdvanceTime: true });
 				const mockProc = createMockChildProcess();
@@ -144,7 +145,6 @@ describe("Health Route", () => {
 				});
 				expect(mockProc.kill).toHaveBeenCalled();
 			},
-			{ timeout: 10_000 },
 		);
 
 		it("cancels timeout when CLI completes successfully", async () => {
