@@ -9,6 +9,15 @@ An HTTP gateway service that exposes [Claude Code CLI](https://github.com/anthro
 | `@pattern-zones-co/claude-code-gateway` | HTTP gateway server wrapping Claude Code CLI |
 | `@pattern-zones-co/claude-code-gateway-sdk` | TypeScript SDK for gateway clients |
 
+> **⚠️ Terms of Use Warning**
+>
+> This gateway supports two authentication methods with different terms of service:
+>
+> - **OAuth Token** (`CLAUDE_CODE_OAUTH_TOKEN`): For Claude Pro/Max subscribers. Subject to Anthropic's consumer subscription terms, which may have restrictions on automated or programmatic usage.
+> - **API Key** (`ANTHROPIC_API_KEY`): For Anthropic API customers. Subject to Anthropic's API terms of service, which are designed for programmatic access.
+>
+> **Users are responsible for reviewing and complying with [Anthropic's Terms of Use](https://www.anthropic.com/legal/consumer-terms) applicable to their chosen authentication method.**
+
 ## Overview
 
 Claude Code Gateway provides:
