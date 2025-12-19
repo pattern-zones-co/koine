@@ -1,0 +1,51 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage-issue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude Code for Issue Triage
+        uses: anthropics/claude-code-action@main
+        with:
+          prompt: |
+            Triage the following GitHub issue by analyzing its content and applying appropriate labels.
+
+            REPO: ${{ github.repository }}
+            ISSUE_NUMBER: ${{ github.event.issue.number }}
+
+            Available labels to apply:
+            - bug: Something isn't working
+            - enhancement: New feature or request
+            - documentation: Improvements or additions to documentation
+            - question: Further information is requested
+            - good first issue: Good for newcomers
+            - help wanted: Extra attention is needed
+            - priority:high: High priority
+            - priority:medium: Medium priority
+            - priority:low: Low priority
+
+            Steps:
+            1. Use `gh issue view ${{ github.event.issue.number }}` to read the issue
+            2. Analyze the issue title and body to determine:
+               - Type of issue (bug, enhancement, documentation, question)
+               - Priority level based on impact and urgency
+               - Whether it's suitable for new contributors
+            3. Apply appropriate labels using `gh issue edit ${{ github.event.issue.number }} --add-label "label1,label2"`
+            4. If the issue is unclear or missing information, leave a polite comment asking for clarification
+
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
