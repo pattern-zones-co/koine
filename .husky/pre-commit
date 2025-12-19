@@ -1,0 +1,249 @@
+#!/bin/sh
+# Pre-commit hook for koine monorepo
+# Runs linting, formatting, type checking, and security scans
+
+# Get list of staged files by type
+# Note: grep returns exit 1 when no matches, so we use || true to avoid script exit
+STAGED_TS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep "\.ts$" || true)
+STAGED_PY_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep "\.py$" || true)
+STAGED_JSON_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep "\.json$" | grep -v "package-lock.json" | grep -v "bun.lock" || true)
+STAGED_SH_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep "\.sh$" || true)
+STAGED_GH_WORKFLOWS=$(git diff --cached --name-only --diff-filter=ACM | grep "^\.github/workflows/.*\.ya\?ml$" || true)
+STAGED_DOCKER_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E "(Dockerfile|docker-compose.*\.ya?ml)$" || true)
+
+# Flag to track if any checks failed
+CHECKS_FAILED=0
+
+# TypeScript linting and formatting with Biome
+if [ -n "$STAGED_TS_FILES" ] || [ -n "$STAGED_JSON_FILES" ]; then
+    echo "📦 Running TypeScript linting and formatting..."
+
+    if [ -d "node_modules" ] && [ -f "node_modules/.bin/biome" ]; then
+        STAGED_FILES_FOR_BIOME=""
+        for file in $STAGED_TS_FILES $STAGED_JSON_FILES; do
+            if [ -f "$file" ]; then
+                STAGED_FILES_FOR_BIOME="$STAGED_FILES_FOR_BIOME $file"
+            fi
+        done
+        if [ -n "$STAGED_FILES_FOR_BIOME" ]; then
+            # Run biome check --write (formats AND fixes lint issues in one pass)
+            # shellcheck disable=SC2086
+            if bun biome check --write $STAGED_FILES_FOR_BIOME 2>&1; then
+                echo "✅ Biome checks passed!"
+                # Re-stage any files modified by biome
+                for file in $STAGED_TS_FILES $STAGED_JSON_FILES; do
+                    if [ -f "$file" ]; then
+                        git add "$file"
+                    fi
+                done
+            else
+                echo "❌ Biome found unfixable issues! Please fix them before committing."
+                echo "💡 Run: bun biome check --write ."
+                CHECKS_FAILED=1
+            fi
+        fi
+    else
+        echo "⚠️  Dependencies not installed. Skipping linting."
+        echo "Run: bun install"
+    fi
+fi
+
+# TypeScript type checking (no emit, just check types)
+# Only check packages that have staged files
+if [ -n "$STAGED_TS_FILES" ]; then
+    echo "🔍 Running TypeScript type checking..."
+
+    if [ -d "node_modules" ]; then
+        TYPE_CHECK_FAILED=0
+        PACKAGES_CHECKED=0
+
+        # Check each package only if it has staged files
+        for pkg_dir in packages/gateway packages/sdks/typescript; do
+            # Check if any staged file is in this package
+            HAS_STAGED_FILES=0
+            for staged_file in $STAGED_TS_FILES; do
+                case "$staged_file" in
+                    "$pkg_dir"/*) HAS_STAGED_FILES=1; break ;;
+                esac
+            done
+
+            if [ $HAS_STAGED_FILES -eq 1 ] && [ -f "$pkg_dir/tsconfig.json" ]; then
+                PACKAGES_CHECKED=$((PACKAGES_CHECKED + 1))
+                if ! bun tsc --noEmit -p "$pkg_dir/tsconfig.json" 2>&1; then
+                    TYPE_CHECK_FAILED=1
+                fi
+            fi
+        done
+
+        if [ $PACKAGES_CHECKED -eq 0 ]; then
+            echo "✅ No packages with staged TypeScript files need type checking."
+        elif [ $TYPE_CHECK_FAILED -eq 1 ]; then
+            echo "❌ TypeScript errors found! Please fix them before committing."
+            CHECKS_FAILED=1
+        else
+            echo "✅ No TypeScript errors found!"
+        fi
+    fi
+fi
+
+# Python linting and formatting with Ruff
+if [ -n "$STAGED_PY_FILES" ]; then
+    echo "🐍 Running Python linting and formatting..."
+
+    if command -v ruff >/dev/null 2>&1; then
+        echo "Checking for linting errors with auto-fix..."
+        # Run check with auto-fix (this will fix what it can)
+        # shellcheck disable=SC2086
+        ruff check --fix $STAGED_PY_FILES 2>&1
+
+        # Check if there are any remaining unfixable errors
+        # shellcheck disable=SC2086
+        if ! ruff check $STAGED_PY_FILES 2>&1; then
+            echo "❌ Unfixable linting errors found! Please fix the above issues before committing."
+            echo "To check linting manually, run: ruff check ."
+            CHECKS_FAILED=1
+        else
+            echo "✅ No linting errors found!"
+        fi
+
+        # Format staged Python files
+        echo "Formatting staged Python files..."
+        # shellcheck disable=SC2086
+        ruff format $STAGED_PY_FILES
+        echo "✅ Python formatting complete!"
+
+        # Re-stage any files that were modified by formatting
+        for file in $STAGED_PY_FILES; do
+            if [ -f "$file" ]; then
+                git add "$file"
+            fi
+        done
+    else
+        echo "⚠️  Ruff not found locally. Skipping Python linting."
+        echo "Install: pip install ruff"
+    fi
+fi
+
+# Shell script linting with shellcheck
+if [ -n "$STAGED_SH_FILES" ]; then
+    echo "🐚 Running shell script linting..."
+
+    if command -v shellcheck >/dev/null 2>&1; then
+        echo "Running shellcheck..."
+        SHELLCHECK_FAILED=0
+        for script in $STAGED_SH_FILES; do
+            if ! shellcheck "$script"; then
+                SHELLCHECK_FAILED=1
+            fi
+        done
+        if [ $SHELLCHECK_FAILED -eq 1 ]; then
+            echo "❌ Shellcheck found issues! Please fix them before committing."
+            CHECKS_FAILED=1
+        else
+            echo "✅ No shell script issues found!"
+        fi
+    else
+        echo "⚠️  Shellcheck not found locally. Skipping shell script linting."
+        echo "Install: brew install shellcheck (macOS) or apt-get install shellcheck (Ubuntu)"
+    fi
+fi
+
+# GitHub workflow validation
+if [ -n "$STAGED_GH_WORKFLOWS" ]; then
+    echo "🔄 Validating GitHub workflows..."
+
+    if command -v actionlint >/dev/null 2>&1; then
+        echo "Running GitHub workflow validation with actionlint..."
+        GH_VALIDATION_FAILED=0
+        for workflow in $STAGED_GH_WORKFLOWS; do
+            if ! actionlint "$workflow" >/dev/null 2>&1; then
+                echo "❌ GitHub workflow validation failed for $workflow"
+                actionlint "$workflow" 2>&1
+                GH_VALIDATION_FAILED=1
+                CHECKS_FAILED=1
+            fi
+        done
+        if [ $GH_VALIDATION_FAILED -eq 0 ]; then
+            echo "✅ All GitHub workflows are valid!"
+        fi
+    else
+        echo "⚠️  actionlint not found locally. Skipping workflow validation."
+        echo "Install: brew install actionlint (macOS) or go install github.com/rhysd/actionlint/cmd/actionlint@latest"
+    fi
+fi
+
+# Docker file linting with hadolint
+if [ -n "$STAGED_DOCKER_FILES" ]; then
+    echo "🐳 Running Docker file validation..."
+
+    DOCKER_VALIDATION_FAILED=0
+
+    # Lint Dockerfiles with hadolint
+    for dockerfile in $STAGED_DOCKER_FILES; do
+        if echo "$dockerfile" | grep -q "Dockerfile"; then
+            if command -v hadolint >/dev/null 2>&1; then
+                if ! hadolint "$dockerfile" 2>&1; then
+                    echo "❌ Dockerfile linting failed for $dockerfile"
+                    DOCKER_VALIDATION_FAILED=1
+                    CHECKS_FAILED=1
+                fi
+            else
+                echo "⚠️  hadolint not found. Skipping Dockerfile linting."
+                echo "Install: brew install hadolint (macOS) or https://github.com/hadolint/hadolint"
+                break
+            fi
+        elif echo "$dockerfile" | grep -q "docker-compose"; then
+            if command -v docker >/dev/null 2>&1; then
+                if ! docker compose -f "$dockerfile" config >/dev/null 2>&1; then
+                    echo "❌ Docker compose config validation failed for $dockerfile"
+                    DOCKER_VALIDATION_FAILED=1
+                    CHECKS_FAILED=1
+                fi
+            else
+                echo "⚠️  Docker not found. Skipping compose validation."
+            fi
+        fi
+    done
+    if [ $DOCKER_VALIDATION_FAILED -eq 0 ]; then
+        echo "✅ All Docker configurations are valid!"
+    fi
+fi
+
+# Secret scanning with ripsecrets
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+if [ -n "$STAGED_FILES" ]; then
+    echo "🔐 Running secret scanning..."
+
+    if command -v ripsecrets >/dev/null 2>&1; then
+        echo "Scanning for secrets in staged files..."
+        # shellcheck disable=SC2086
+        if ! ripsecrets --strict-ignore $STAGED_FILES 2>&1; then
+            echo "❌ Potential secrets detected! Please review and remove them before committing."
+            echo "To ignore specific patterns, add them to .secretsignore"
+            CHECKS_FAILED=1
+        else
+            echo "✅ No secrets detected!"
+        fi
+    else
+        echo "⚠️  ripsecrets not found locally. Skipping secret scanning."
+        echo "Install: cargo install ripsecrets"
+        echo "Docs: https://github.com/sirwart/ripsecrets"
+    fi
+fi
+
+# Check if we have any staged files but no appropriate tools
+if [ -z "$STAGED_TS_FILES" ] && [ -z "$STAGED_PY_FILES" ] && [ -z "$STAGED_JSON_FILES" ] && [ -z "$STAGED_SH_FILES" ] && [ -z "$STAGED_GH_WORKFLOWS" ] && [ -z "$STAGED_DOCKER_FILES" ]; then
+    echo "ℹ️  No files requiring validation staged for commit."
+    exit 0
+fi
+
+# Exit with error if any checks failed
+if [ $CHECKS_FAILED -eq 1 ]; then
+    echo ""
+    echo "❌ Pre-commit checks failed! Please fix the issues above before committing."
+    exit 1
+fi
+
+echo ""
+echo "✅ All pre-commit checks passed!"
+exit 0

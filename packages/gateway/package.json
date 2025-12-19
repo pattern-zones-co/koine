@@ -1,37 +1,37 @@
 {
-  "name": "@pattern-zones-co/koine",
-  "version": "1.0.0",
-  "private": true,
-  "description": "HTTP gateway service for Claude Code CLI",
-  "main": "dist/index.js",
-  "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "bun run dist/index.js",
-    "lint": "biome check .",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:e2e": "RUN_E2E_TESTS=true vitest run --config vitest.e2e.config.ts"
-  },
-  "dependencies": {
-    "express": "4.22.1",
-    "uuid": "11.1.0",
-    "zod": "3.25.76"
-  },
-  "devDependencies": {
-    "@types/express": "5.0.6",
-    "@types/node": "25.0.2",
-    "@types/uuid": "10.0.0",
-    "@types/supertest": "6.0.3",
-    "@vitest/coverage-v8": "3.2.4",
-    "supertest": "7.1.4",
-    "tsx": "4.21.0",
-    "typescript": "5.9.3",
-    "vitest": "3.2.4"
-  },
-  "engines": {
-    "node": ">=20",
-    "bun": ">=1.1"
-  }
+	"name": "@pattern-zones-co/koine",
+	"version": "1.0.0",
+	"private": true,
+	"description": "HTTP gateway service for Claude Code CLI",
+	"main": "dist/index.js",
+	"scripts": {
+		"dev": "tsx watch src/index.ts",
+		"build": "tsc",
+		"start": "bun run dist/index.js",
+		"lint": "biome check .",
+		"test": "vitest",
+		"test:run": "vitest run",
+		"test:coverage": "vitest run --coverage",
+		"test:e2e": "RUN_E2E_TESTS=true vitest run --config vitest.e2e.config.ts"
+	},
+	"dependencies": {
+		"express": "4.22.1",
+		"uuid": "11.1.0",
+		"zod": "3.25.76"
+	},
+	"devDependencies": {
+		"@types/express": "5.0.6",
+		"@types/node": "25.0.2",
+		"@types/uuid": "10.0.0",
+		"@types/supertest": "6.0.3",
+		"@vitest/coverage-v8": "3.2.4",
+		"supertest": "7.1.4",
+		"tsx": "4.21.0",
+		"typescript": "5.9.3",
+		"vitest": "3.2.4"
+	},
+	"engines": {
+		"node": ">=20",
+		"bun": ">=1.1"
+	}
 }

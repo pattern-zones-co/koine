@@ -2,33 +2,33 @@ import { z } from "zod";
 
 // Request schemas
 export const generateTextRequestSchema = z.object({
-  system: z.string().optional(),
-  prompt: z.string(),
-  sessionId: z.string().optional(),
-  maxTokens: z.number().optional(),
-  model: z.string().optional(),
-  /** User email for tool proxy access (enables Claude skills to call Inbox Zero tools) */
-  userEmail: z.string().email().optional(),
+	system: z.string().optional(),
+	prompt: z.string(),
+	sessionId: z.string().optional(),
+	maxTokens: z.number().optional(),
+	model: z.string().optional(),
+	/** User email for tool proxy access (enables Claude skills to call Inbox Zero tools) */
+	userEmail: z.string().email().optional(),
 });
 
 export const generateObjectRequestSchema = z.object({
-  system: z.string().optional(),
-  prompt: z.string(),
-  schema: z.record(z.unknown()),
-  sessionId: z.string().optional(),
-  maxTokens: z.number().optional(),
-  model: z.string().optional(),
-  /** User email for tool proxy access (enables Claude skills to call Inbox Zero tools) */
-  userEmail: z.string().email().optional(),
+	system: z.string().optional(),
+	prompt: z.string(),
+	schema: z.record(z.unknown()),
+	sessionId: z.string().optional(),
+	maxTokens: z.number().optional(),
+	model: z.string().optional(),
+	/** User email for tool proxy access (enables Claude skills to call Inbox Zero tools) */
+	userEmail: z.string().email().optional(),
 });
 
 export const streamRequestSchema = z.object({
-  system: z.string().optional(),
-  prompt: z.string(),
-  sessionId: z.string().optional(),
-  model: z.string().optional(),
-  /** User email for tool proxy access (enables Claude skills to call Inbox Zero tools) */
-  userEmail: z.string().email().optional(),
+	system: z.string().optional(),
+	prompt: z.string(),
+	sessionId: z.string().optional(),
+	model: z.string().optional(),
+	/** User email for tool proxy access (enables Claude skills to call Inbox Zero tools) */
+	userEmail: z.string().email().optional(),
 });
 
 // Inferred types
@@ -38,22 +38,22 @@ export type StreamRequest = z.infer<typeof streamRequestSchema>;
 
 // Response types
 export interface UsageInfo {
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
+	inputTokens: number;
+	outputTokens: number;
+	totalTokens: number;
 }
 
 export interface GenerateTextResponse {
-  text: string;
-  usage: UsageInfo;
-  sessionId: string;
+	text: string;
+	usage: UsageInfo;
+	sessionId: string;
 }
 
 export interface GenerateObjectResponse {
-  object: unknown;
-  rawText: string;
-  usage: UsageInfo;
-  sessionId: string;
+	object: unknown;
+	rawText: string;
+	usage: UsageInfo;
+	sessionId: string;
 }
 
 /**
@@ -61,39 +61,39 @@ export interface GenerateObjectResponse {
  * Shared between ErrorResponse and ClaudeCliError for type safety.
  */
 export type ErrorCode =
-  | "VALIDATION_ERROR"
-  | "INTERNAL_ERROR"
-  | "UNKNOWN_ERROR"
-  | "TIMEOUT_ERROR"
-  | "CLI_EXIT_ERROR"
-  | "SPAWN_ERROR"
-  | "PARSE_ERROR";
+	| "VALIDATION_ERROR"
+	| "INTERNAL_ERROR"
+	| "UNKNOWN_ERROR"
+	| "TIMEOUT_ERROR"
+	| "CLI_EXIT_ERROR"
+	| "SPAWN_ERROR"
+	| "PARSE_ERROR";
 
 export interface ErrorResponse {
-  error: string;
-  code: ErrorCode;
-  rawText?: string;
+	error: string;
+	code: ErrorCode;
+	rawText?: string;
 }
 
 // Claude CLI output structure (from --output-format json)
 export interface ClaudeCliOutput {
-  type: "result" | "error";
-  subtype?: string;
-  result?: string;
-  total_cost_usd?: number;
-  duration_ms?: number;
-  duration_api_ms?: number;
-  is_error?: boolean;
-  session_id?: string;
-  num_turns?: number;
-  // New format (Claude CLI 1.0.17+)
-  usage?: {
-    input_tokens?: number;
-    output_tokens?: number;
-    cache_creation_input_tokens?: number;
-    cache_read_input_tokens?: number;
-  };
-  // Legacy format (kept for backwards compatibility)
-  total_tokens_in?: number;
-  total_tokens_out?: number;
+	type: "result" | "error";
+	subtype?: string;
+	result?: string;
+	total_cost_usd?: number;
+	duration_ms?: number;
+	duration_api_ms?: number;
+	is_error?: boolean;
+	session_id?: string;
+	num_turns?: number;
+	// New format (Claude CLI 1.0.17+)
+	usage?: {
+		input_tokens?: number;
+		output_tokens?: number;
+		cache_creation_input_tokens?: number;
+		cache_read_input_tokens?: number;
+	};
+	// Legacy format (kept for backwards compatibility)
+	total_tokens_in?: number;
+	total_tokens_out?: number;
 }

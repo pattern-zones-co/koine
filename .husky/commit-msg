@@ -1,0 +1,14 @@
+#!/bin/sh
+# Commit message linting with commitlint
+
+if command -v bun >/dev/null 2>&1 && [ -f "node_modules/.bin/commitlint" ]; then
+    if ! bun commitlint --edit "$1"; then
+        echo "❌ Commit message does not follow conventional commit format."
+        echo "💡 Format: <type>(<scope>): <subject>"
+        echo "   Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+        exit 1
+    fi
+else
+    echo "⚠️  commitlint not found. Skipping commit message validation."
+    echo "Run: bun install"
+fi

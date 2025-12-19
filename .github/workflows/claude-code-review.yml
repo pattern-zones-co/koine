@@ -39,17 +39,24 @@ jobs:
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
+            EVENT: ${{ github.event.action }}
 
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            Before reviewing:
+            1. Run `gh pr view ${{ github.event.pull_request.number }} --comments` to read ALL existing comments on this PR
+            2. Run `gh pr diff ${{ github.event.pull_request.number }}` to see the current changes
+            3. If this is a "synchronize" event (new commits pushed), focus ONLY on what changed since your last review
 
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            Review guidelines:
+            - Do NOT repeat feedback already given in prior comments (yours or others)
+            - If issues from your last review were addressed, acknowledge briefly
+            - If no new issues exist, do NOT leave a comment - just exit silently
+            - Focus on: bugs, security issues, logic errors, and significant problems
+            - Skip minor style nitpicks if the code follows CLAUDE.md conventions
+            - Be concise - a few sentences is better than paragraphs
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+            If you have meaningful NEW feedback, use `gh pr comment` to post it.
+            If prior feedback still applies and wasn't addressed, you may reference it briefly.
+            If you have nothing new to add, exit without commenting.
 
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
