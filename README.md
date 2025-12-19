@@ -1,5 +1,7 @@
 # Koine
 
+[![codecov](https://codecov.io/gh/pattern-zones-co/koine/graph/badge.svg)](https://codecov.io/gh/pattern-zones-co/koine)
+
 > The common language for your services.
 
 An HTTP gateway that exposes [Claude Code CLI](https://github.com/anthropics/claude-code) as a REST API, plus a TypeScript SDK for easy integration.
