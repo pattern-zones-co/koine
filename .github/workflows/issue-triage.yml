@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Claude Code for Issue Triage
-        uses: anthropics/claude-code-action@main
+        uses: anthropics/claude-code-action@v1
         with:
           prompt: |
             Triage the following GitHub issue by analyzing its content and applying appropriate labels.

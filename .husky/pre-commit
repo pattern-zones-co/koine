@@ -19,8 +19,6 @@ if [ -n "$STAGED_TS_FILES" ] || [ -n "$STAGED_JSON_FILES" ]; then
     echo "📦 Running TypeScript linting and formatting..."
 
     if [ -d "node_modules" ] && [ -f "node_modules/.bin/biome" ]; then
-        # 1. Run Biome format with auto-fix on staged files
-        echo "Running Biome formatter on staged files..."
         STAGED_FILES_FOR_BIOME=""
         for file in $STAGED_TS_FILES $STAGED_JSON_FILES; do
             if [ -f "$file" ]; then
@@ -28,29 +26,21 @@ if [ -n "$STAGED_TS_FILES" ] || [ -n "$STAGED_JSON_FILES" ]; then
             fi
         done
         if [ -n "$STAGED_FILES_FOR_BIOME" ]; then
+            # Run biome check --write (formats AND fixes lint issues in one pass)
             # shellcheck disable=SC2086
-            if bun biome format --write $STAGED_FILES_FOR_BIOME; then
-                echo "✅ Biome formatting complete!"
-                # Re-stage formatted files
+            if bun biome check --write $STAGED_FILES_FOR_BIOME 2>&1; then
+                echo "✅ Biome checks passed!"
+                # Re-stage any files modified by biome
                 for file in $STAGED_TS_FILES $STAGED_JSON_FILES; do
                     if [ -f "$file" ]; then
                         git add "$file"
                     fi
                 done
             else
-                echo "⚠️  Biome formatter encountered issues (continuing anyway)"
+                echo "❌ Biome found unfixable issues! Please fix them before committing."
+                echo "💡 Run: bun biome check --write ."
+                CHECKS_FAILED=1
             fi
-        fi
-
-        # 2. Run Biome linting (BLOCKING - must pass)
-        echo "Running Biome linting..."
-        # shellcheck disable=SC2086
-        if ! bun biome check $STAGED_FILES_FOR_BIOME 2>&1; then
-            echo "❌ Biome found linting issues! Please fix them before committing."
-            echo "💡 To fix: bun biome check --write ."
-            CHECKS_FAILED=1
-        else
-            echo "✅ No Biome linting issues found!"
         fi
     else
         echo "⚠️  Dependencies not installed. Skipping linting."
@@ -167,36 +157,40 @@ if [ -n "$STAGED_GH_WORKFLOWS" ]; then
     fi
 fi
 
-# Docker build checks
+# Docker file linting with hadolint
 if [ -n "$STAGED_DOCKER_FILES" ]; then
-    echo "🐳 Running Docker build checks..."
+    echo "🐳 Running Docker file validation..."
 
-    if command -v docker >/dev/null 2>&1; then
-        echo "Running Docker build checks..."
-        DOCKER_VALIDATION_FAILED=0
-        for dockerfile in $STAGED_DOCKER_FILES; do
-            if echo "$dockerfile" | grep -q "Dockerfile"; then
-                dockerfile_dir=$(dirname "$dockerfile")
-                [ "$dockerfile_dir" = "." ] && dockerfile_dir="."
-                if ! docker build --check --file "$dockerfile" "$dockerfile_dir" >/dev/null 2>&1; then
-                    echo "❌ Docker build check failed for $dockerfile"
+    DOCKER_VALIDATION_FAILED=0
+
+    # Lint Dockerfiles with hadolint
+    for dockerfile in $STAGED_DOCKER_FILES; do
+        if echo "$dockerfile" | grep -q "Dockerfile"; then
+            if command -v hadolint >/dev/null 2>&1; then
+                if ! hadolint "$dockerfile" 2>&1; then
+                    echo "❌ Dockerfile linting failed for $dockerfile"
                     DOCKER_VALIDATION_FAILED=1
                     CHECKS_FAILED=1
                 fi
-            elif echo "$dockerfile" | grep -q "docker-compose"; then
+            else
+                echo "⚠️  hadolint not found. Skipping Dockerfile linting."
+                echo "Install: brew install hadolint (macOS) or https://github.com/hadolint/hadolint"
+                break
+            fi
+        elif echo "$dockerfile" | grep -q "docker-compose"; then
+            if command -v docker >/dev/null 2>&1; then
                 if ! docker compose config >/dev/null 2>&1; then
                     echo "❌ Docker compose config validation failed for $dockerfile"
                     DOCKER_VALIDATION_FAILED=1
                     CHECKS_FAILED=1
                 fi
+            else
+                echo "⚠️  Docker not found. Skipping compose validation."
             fi
-        done
-        if [ $DOCKER_VALIDATION_FAILED -eq 0 ]; then
-            echo "✅ All Docker configurations are valid!"
         fi
-    else
-        echo "⚠️  Docker not found locally. Skipping Docker build checks."
-        echo "Install: https://docs.docker.com/get-docker/"
+    done
+    if [ $DOCKER_VALIDATION_FAILED -eq 0 ]; then
+        echo "✅ All Docker configurations are valid!"
     fi
 fi
 

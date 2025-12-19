@@ -13,12 +13,19 @@ bun run lint     # Lint check
 
 ## Pre-commit Hooks
 
-Husky runs automatic checks on every commit. The hooks skip gracefully if optional tools aren't installed:
+Husky runs automatic checks on every commit. The following tools are strongly recommended for local development:
 
 - **shellcheck** - Shell script linting
 - **actionlint** - GitHub workflow validation
+- **hadolint** - Dockerfile linting
 - **ripsecrets** - Secret scanning
 - **ruff** - Python linting (for future Python SDK)
+
+Hooks skip gracefully if tools aren't installed, but CI will catch issues you miss locally.
+
+## GitHub Actions
+
+CI runs on all pull requests. Forks need a `CLAUDE_CODE_OAUTH_TOKEN` secret for Claude-powered issue triage.
 
 ## How to Contribute
 
