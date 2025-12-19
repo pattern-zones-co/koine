@@ -89,8 +89,7 @@ koine/
 │   ├── skills/
 │   └── commands/
 ├── Dockerfile                 # Hardened container build
-├── docker-compose.yml         # Docker deployment example
-└── pnpm-workspace.yaml        # Monorepo configuration
+└── docker-compose.yml         # Docker deployment example
 ```
 
 ## Quick Start
