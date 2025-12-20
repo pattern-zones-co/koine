@@ -31,7 +31,7 @@ Koine turns Claude Code into a programmable inference layer. Use it to:
 > - **OAuth tokens** (Claude Pro/Max) — subscription plans may restrict commercial use, automation, and public exposure. * See [Anthropic's Terms of Service](https://www.anthropic.com/legal/consumer-terms).
 > - **API keys** (Anthropic API) — pay-per-token with different allowable use cases
 >
-> **You are responsible for compliance.
+> **You are responsible for compliance.**
 
 ### Deployment Best Practices
 
