@@ -1,5 +1,6 @@
 {
 	"name": "@patternzones/koine",
+	"private": true,
 	"version": "1.0.0",
 	"description": "HTTP gateway service for Claude Code CLI",
 	"repository": {

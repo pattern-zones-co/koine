@@ -1,12 +1,12 @@
 name: koine
 
 services:
-  gateway:
+  koine:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "${GATEWAY_PORT:-3100}:3100"
+      - "127.0.0.1:${GATEWAY_PORT:-3100}:3100"
     environment:
       PORT: 3100
       # HOME required for Claude CLI to find its config directory
