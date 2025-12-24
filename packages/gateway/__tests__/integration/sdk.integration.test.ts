@@ -30,7 +30,7 @@ import {
 // Set env vars BEFORE any gateway imports (using vi.hoisted for earliest execution)
 const TEST_API_KEY = vi.hoisted(() => {
 	const key = "sdk-integration-test-key-12345";
-	process.env.CLAUDE_CODE_WRAPPER_API_KEY = key;
+	process.env.CLAUDE_CODE_GATEWAY_API_KEY = key;
 	// Use port 0 to let OS assign an available port (avoids conflicts in parallel runs)
 	process.env.PORT = "0";
 	return key;
