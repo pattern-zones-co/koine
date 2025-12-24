@@ -1,0 +1,545 @@
+openapi: 3.1.0
+info:
+  title: Koine Gateway API
+  version: 1.0.0
+  description: HTTP gateway service for Claude Code CLI. Provides REST endpoints for text generation, structured object generation, and streaming responses.
+  license:
+    name: AGPL-3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.en.html
+  contact:
+    name: Pattern Zones Co
+    url: https://github.com/pattern-zones-co/koine
+servers:
+  - url: http://localhost:3100
+    description: Local development server
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Generation
+    description: Text and object generation endpoints
+  - name: Streaming
+    description: Server-Sent Events streaming endpoints
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: "API key for authentication. Generate with: openssl rand -hex 32"
+  schemas:
+    GenerateTextRequest:
+      type: object
+      properties:
+        system:
+          type: string
+        prompt:
+          type: string
+        sessionId:
+          type: string
+        maxTokens:
+          type: number
+        model:
+          type: string
+        userEmail:
+          type: string
+          format: email
+      required:
+        - prompt
+    GenerateObjectRequest:
+      type: object
+      properties:
+        system:
+          type: string
+        prompt:
+          type: string
+        schema:
+          type: object
+          additionalProperties: {}
+        sessionId:
+          type: string
+        maxTokens:
+          type: number
+        model:
+          type: string
+        userEmail:
+          type: string
+          format: email
+      required:
+        - prompt
+        - schema
+    StreamRequest:
+      type: object
+      properties:
+        system:
+          type: string
+        prompt:
+          type: string
+        sessionId:
+          type: string
+        model:
+          type: string
+        userEmail:
+          type: string
+          format: email
+      required:
+        - prompt
+    UsageInfo:
+      type: object
+      properties:
+        inputTokens:
+          type: number
+        outputTokens:
+          type: number
+        totalTokens:
+          type: number
+      required:
+        - inputTokens
+        - outputTokens
+        - totalTokens
+    GenerateTextResponse:
+      type: object
+      properties:
+        text:
+          type: string
+        usage:
+          type: object
+          properties:
+            inputTokens:
+              type: number
+            outputTokens:
+              type: number
+            totalTokens:
+              type: number
+          required:
+            - inputTokens
+            - outputTokens
+            - totalTokens
+        sessionId:
+          type: string
+      required:
+        - text
+        - usage
+        - sessionId
+    GenerateObjectResponse:
+      type: object
+      properties:
+        object: {}
+        rawText:
+          type: string
+        usage:
+          type: object
+          properties:
+            inputTokens:
+              type: number
+            outputTokens:
+              type: number
+            totalTokens:
+              type: number
+          required:
+            - inputTokens
+            - outputTokens
+            - totalTokens
+        sessionId:
+          type: string
+      required:
+        - rawText
+        - usage
+        - sessionId
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          enum: &a3
+            - VALIDATION_ERROR
+            - INTERNAL_ERROR
+            - UNKNOWN_ERROR
+            - TIMEOUT_ERROR
+            - CLI_EXIT_ERROR
+            - SPAWN_ERROR
+            - PARSE_ERROR
+        rawText:
+          type: string
+      required:
+        - error
+        - code
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: &a1
+            - healthy
+            - unhealthy
+        claudeCli:
+          type: string
+          enum: &a2
+            - available
+            - unavailable
+        timestamp:
+          type: string
+        error:
+          type: string
+      required:
+        - status
+        - claudeCli
+        - timestamp
+  parameters: {}
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Verifies the service is running and Claude CLI is accessible. No authentication required.
+      tags:
+        - Health
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: *a1
+                  claudeCli:
+                    type: string
+                    enum: *a2
+                  timestamp:
+                    type: string
+                  error:
+                    type: string
+                required:
+                  - status
+                  - claudeCli
+                  - timestamp
+        "503":
+          description: Service is unhealthy (Claude CLI unavailable)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: *a1
+                  claudeCli:
+                    type: string
+                    enum: *a2
+                  timestamp:
+                    type: string
+                  error:
+                    type: string
+                required:
+                  - status
+                  - claudeCli
+                  - timestamp
+  /generate-text:
+    post:
+      summary: Generate text response
+      description: Generates plain text response from Claude CLI.
+      tags:
+        - Generation
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                system:
+                  type: string
+                prompt:
+                  type: string
+                sessionId:
+                  type: string
+                maxTokens:
+                  type: number
+                model:
+                  type: string
+                userEmail:
+                  type: string
+                  format: email
+              required:
+                - prompt
+      responses:
+        "200":
+          description: Successful text generation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
+                  usage:
+                    type: object
+                    properties:
+                      inputTokens:
+                        type: number
+                      outputTokens:
+                        type: number
+                      totalTokens:
+                        type: number
+                    required:
+                      - inputTokens
+                      - outputTokens
+                      - totalTokens
+                  sessionId:
+                    type: string
+                required:
+                  - text
+                  - usage
+                  - sessionId
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: *a3
+                  rawText:
+                    type: string
+                required:
+                  - error
+                  - code
+        "401":
+          description: Missing authorization header
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        "403":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        "500":
+          description: Internal server error or CLI error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: *a3
+                  rawText:
+                    type: string
+                required:
+                  - error
+                  - code
+  /generate-object:
+    post:
+      summary: Generate structured JSON response
+      description: Generates structured JSON response from Claude CLI. The schema is passed in the request to instruct Claude to output valid JSON.
+      tags:
+        - Generation
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                system:
+                  type: string
+                prompt:
+                  type: string
+                schema:
+                  type: object
+                  additionalProperties: {}
+                sessionId:
+                  type: string
+                maxTokens:
+                  type: number
+                model:
+                  type: string
+                userEmail:
+                  type: string
+                  format: email
+              required:
+                - prompt
+                - schema
+      responses:
+        "200":
+          description: Successful object generation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  object: {}
+                  rawText:
+                    type: string
+                  usage:
+                    type: object
+                    properties:
+                      inputTokens:
+                        type: number
+                      outputTokens:
+                        type: number
+                      totalTokens:
+                        type: number
+                    required:
+                      - inputTokens
+                      - outputTokens
+                      - totalTokens
+                  sessionId:
+                    type: string
+                required:
+                  - rawText
+                  - usage
+                  - sessionId
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: *a3
+                  rawText:
+                    type: string
+                required:
+                  - error
+                  - code
+        "401":
+          description: Missing authorization header
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        "403":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        "500":
+          description: Internal server error or CLI error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: *a3
+                  rawText:
+                    type: string
+                required:
+                  - error
+                  - code
+  /stream:
+    post:
+      summary: Stream text response via SSE
+      description: "Streams Claude CLI output using Server-Sent Events (SSE). Provides real-time streaming of Claude's response with session management and usage tracking. Event types: session (session ID), text (streaming content), result (final usage stats), error (errors), done (stream complete)."
+      tags:
+        - Streaming
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                system:
+                  type: string
+                prompt:
+                  type: string
+                sessionId:
+                  type: string
+                model:
+                  type: string
+                userEmail:
+                  type: string
+                  format: email
+              required:
+                - prompt
+      responses:
+        "200":
+          description: SSE stream with real-time Claude CLI output
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: *a3
+                  rawText:
+                    type: string
+                required:
+                  - error
+                  - code
+        "401":
+          description: Missing authorization header
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        "403":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+webhooks: {}
