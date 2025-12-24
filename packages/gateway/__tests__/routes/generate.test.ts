@@ -80,7 +80,7 @@ describe("Generate Routes", () => {
 						session_id: "session-123",
 					}),
 				);
-			}, 10);
+			}, 50);
 
 			const res = await responsePromise;
 
@@ -107,7 +107,7 @@ describe("Generate Routes", () => {
 
 			setTimeout(() => {
 				simulateCliSuccess(mockProc, createCliResultJson({ result: "Hi!" }));
-			}, 10);
+			}, 50);
 
 			await responsePromise;
 
@@ -129,7 +129,7 @@ describe("Generate Routes", () => {
 
 			setTimeout(() => {
 				simulateCliSuccess(mockProc, createCliResultJson({ result: "Hi!" }));
-			}, 10);
+			}, 50);
 
 			await responsePromise;
 
@@ -151,7 +151,7 @@ describe("Generate Routes", () => {
 
 			setTimeout(() => {
 				simulateCliSuccess(mockProc, createCliResultJson({ result: "Hi!" }));
-			}, 10);
+			}, 50);
 
 			await responsePromise;
 
@@ -173,7 +173,7 @@ describe("Generate Routes", () => {
 
 			setTimeout(() => {
 				simulateCliError(mockProc, "Rate limit exceeded", 1);
-			}, 10);
+			}, 50);
 
 			const res = await responsePromise;
 
@@ -232,7 +232,7 @@ describe("Generate Routes", () => {
 						result: '{"name": "Alice", "age": 30}',
 					}),
 				);
-			}, 10);
+			}, 50);
 
 			const res = await responsePromise;
 
@@ -259,7 +259,7 @@ describe("Generate Routes", () => {
 						result: '```json\n{"name": "Bob"}\n```',
 					}),
 				);
-			}, 10);
+			}, 50);
 
 			const res = await responsePromise;
 
@@ -283,7 +283,7 @@ describe("Generate Routes", () => {
 						result: 'Here is the result: {"name": "Charlie"} - done!',
 					}),
 				);
-			}, 10);
+			}, 50);
 
 			const res = await responsePromise;
 
@@ -308,7 +308,7 @@ describe("Generate Routes", () => {
 						result: '["one", "two", "three"]',
 					}),
 				);
-			}, 10);
+			}, 50);
 
 			const res = await responsePromise;
 
@@ -332,7 +332,7 @@ describe("Generate Routes", () => {
 						result: "This is not valid JSON at all",
 					}),
 				);
-			}, 10);
+			}, 50);
 
 			const res = await responsePromise;
 
@@ -355,7 +355,7 @@ describe("Generate Routes", () => {
 					mockProc,
 					createCliResultJson({ result: '{"name": "Test"}' }),
 				);
-			}, 10);
+			}, 50);
 
 			await responsePromise;
 
