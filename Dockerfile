@@ -16,7 +16,6 @@ WORKDIR /app
 
 # Copy package files (root workspace + gateway package)
 COPY package.json ./
-COPY pnpm-workspace.yaml ./
 COPY bun.lock* ./
 COPY packages/gateway/package.json ./packages/gateway/
 
@@ -29,7 +28,9 @@ COPY packages/gateway/tsconfig.json ./packages/gateway/
 COPY packages/gateway/src ./packages/gateway/src
 
 # Build TypeScript using tsc (preserves module structure for Express compatibility)
-RUN cd packages/gateway && bun run build
+WORKDIR /app/packages/gateway
+RUN bun run build
+WORKDIR /app
 
 # Re-install with production deps only
 RUN rm -rf node_modules packages/gateway/node_modules && bun install --production
@@ -40,6 +41,7 @@ FROM oven/bun:1.3.3-slim
 # Install runtime dependencies (as root, before USER switch)
 # - curl: required for healthcheck
 # - ca-certificates: required for HTTPS API calls
+# hadolint ignore=DL3008
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
@@ -63,6 +65,9 @@ COPY --from=builder --chown=bun:bun /app/package.json ./
 COPY --from=builder --chown=bun:bun /app/node_modules ./node_modules
 COPY --from=builder --chown=bun:bun /app/packages/gateway/package.json ./packages/gateway/
 COPY --from=builder --chown=bun:bun /app/packages/gateway/dist ./packages/gateway/dist
+
+# Copy OpenAPI spec for /docs endpoint
+COPY --chown=bun:bun docs/openapi.yaml ./docs/
 
 # Create Claude CLI data directory for the bun user
 RUN mkdir -p /home/bun/.claude && chown -R bun:bun /home/bun/.claude
