@@ -14,10 +14,11 @@ FROM oven/bun:1.3.3-slim AS builder
 
 WORKDIR /app
 
-# Copy package files (root workspace + gateway package)
+# Copy package files (root workspace + all workspace packages)
 COPY package.json ./
 COPY bun.lock* ./
 COPY packages/gateway/package.json ./packages/gateway/
+COPY packages/sdks/typescript/package.json ./packages/sdks/typescript/
 
 # Install dependencies (including dev deps for build)
 # Falls back to non-frozen install if no lockfile exists
