@@ -15,6 +15,8 @@ servers:
 tags:
   - name: Health
     description: Health check endpoints
+  - name: Documentation
+    description: API documentation and OpenAPI specification
   - name: Generation
     description: Text and object generation endpoints
   - name: Streaming
@@ -236,6 +238,32 @@ paths:
                   - status
                   - claudeCli
                   - timestamp
+  /docs:
+    get:
+      summary: API documentation
+      description: Interactive API documentation powered by Scalar. No authentication required.
+      tags:
+        - Documentation
+      responses:
+        "200":
+          description: HTML page with interactive API documentation
+          content:
+            text/html:
+              schema:
+                type: string
+  /openapi.yaml:
+    get:
+      summary: OpenAPI specification
+      description: Raw OpenAPI 3.1 specification in YAML format. No authentication required.
+      tags:
+        - Documentation
+      responses:
+        "200":
+          description: OpenAPI specification in YAML format
+          content:
+            text/yaml:
+              schema:
+                type: string
   /generate-text:
     post:
       summary: Generate text response

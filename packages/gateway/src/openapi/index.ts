@@ -30,6 +30,10 @@ export function generateOpenAPIDocument() {
 		tags: [
 			{ name: "Health", description: "Health check endpoints" },
 			{
+				name: "Documentation",
+				description: "API documentation and OpenAPI specification",
+			},
+			{
 				name: "Generation",
 				description: "Text and object generation endpoints",
 			},

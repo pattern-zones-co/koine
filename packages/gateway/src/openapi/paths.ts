@@ -38,6 +38,46 @@ registry.registerPath({
 	},
 });
 
+// GET /docs (no auth required)
+registry.registerPath({
+	method: "get",
+	path: "/docs",
+	summary: "API documentation",
+	description:
+		"Interactive API documentation powered by Scalar. No authentication required.",
+	tags: ["Documentation"],
+	responses: {
+		200: {
+			description: "HTML page with interactive API documentation",
+			content: {
+				"text/html": {
+					schema: z.string(),
+				},
+			},
+		},
+	},
+});
+
+// GET /openapi.yaml (no auth required)
+registry.registerPath({
+	method: "get",
+	path: "/openapi.yaml",
+	summary: "OpenAPI specification",
+	description:
+		"Raw OpenAPI 3.1 specification in YAML format. No authentication required.",
+	tags: ["Documentation"],
+	responses: {
+		200: {
+			description: "OpenAPI specification in YAML format",
+			content: {
+				"text/yaml": {
+					schema: z.string(),
+				},
+			},
+		},
+	},
+});
+
 // POST /generate-text
 registry.registerPath({
 	method: "post",

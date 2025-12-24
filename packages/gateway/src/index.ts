@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import express, { type Application } from "express";
 import { logger } from "./logger.js";
+import docsRouter from "./routes/docs.js";
 import generateRouter from "./routes/generate.js";
 import healthRouter from "./routes/health.js";
 import streamRouter from "./routes/stream.js";
@@ -21,10 +22,14 @@ if (!WRAPPER_API_KEY) {
 // Middleware
 app.use(express.json({ limit: "10mb" }));
 
-// API key authentication (required for all routes except health check)
+// API key authentication (required for all routes except health check and docs)
 app.use((req, res, next) => {
-	// Skip auth for health check
-	if (req.path === "/health") {
+	// Skip auth for health check and documentation
+	if (
+		req.path === "/health" ||
+		req.path === "/docs" ||
+		req.path === "/openapi.yaml"
+	) {
 		next();
 		return;
 	}
@@ -60,6 +65,7 @@ app.use((req, _res, next) => {
 
 // Routes
 app.use(healthRouter);
+app.use(docsRouter);
 app.use(generateRouter);
 app.use(streamRouter);
 
