@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/pattern-zones-co/koine/compare/v1.1.0...v1.1.1) (2025-12-24)
+
+
+### Bug Fixes
+
+* **ci:** add workflow_dispatch trigger for manual releases ([d29a957](https://github.com/pattern-zones-co/koine/commit/d29a9577b549a494175396c50a5e3769cb4fea73))
+* **ci:** trigger release workflow on GitHub release event ([892add9](https://github.com/pattern-zones-co/koine/commit/892add9ed85bad9d8bf8e0f857b5dd125f63c10e))
+
 ## [1.1.0](https://github.com/pattern-zones-co/koine/compare/v1.0.0...v1.1.0) (2025-12-24)
 
 
