@@ -8,9 +8,39 @@
 cp .env.example .env
 # Edit .env with your keys
 
-docker compose up -d koine
+docker compose up -d
 curl http://localhost:3100/health
 ```
+
+By default, this pulls the pre-built image from `ghcr.io/pattern-zones-co/koine:latest`.
+
+## Version Pinning
+
+Pin to a specific version for stability:
+
+```bash
+# In .env or inline
+KOINE_VERSION=1.2.3 docker compose up -d
+
+# Or set in .env file:
+# KOINE_VERSION=1.2.3
+```
+
+Available version formats:
+- `1.2.3` - Exact version
+- `1.2` - Latest patch of minor version
+- `1` - Latest minor/patch of major version
+- `latest` - Most recent release (default)
+
+## Local Development
+
+Build from source using the dev profile:
+
+```bash
+docker compose --profile dev up --build
+```
+
+This uses `koine-dev` service which builds locally from the Dockerfile.
 
 ## Configuration
 

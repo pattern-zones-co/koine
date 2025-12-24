@@ -1,0 +1,24 @@
+{
+	"$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+	"release-type": "node",
+	"packages": {
+		".": {
+			"component": "koine",
+			"changelog-path": "CHANGELOG.md",
+			"include-component-in-tag": false,
+			"extra-files": [
+				"packages/gateway/package.json",
+				"packages/sdks/typescript/package.json"
+			]
+		}
+	},
+	"include-v-in-tag": true,
+	"bump-minor-pre-major": true,
+	"changelog-sections": [
+		{ "type": "feat", "section": "Features" },
+		{ "type": "fix", "section": "Bug Fixes" },
+		{ "type": "perf", "section": "Performance Improvements" },
+		{ "type": "docs", "section": "Documentation" },
+		{ "type": "refactor", "section": "Code Refactoring" }
+	]
+}
