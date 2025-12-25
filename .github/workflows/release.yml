@@ -33,10 +33,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Get PR branch name
+        id: pr-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch=$(gh pr view "${{ needs.release-please.outputs.pr }}" --repo "${{ github.repository }}" --json headRefName -q '.headRefName')
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
-          ref: release-please--branches--main
+          ref: ${{ steps.pr-branch.outputs.branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Bun
