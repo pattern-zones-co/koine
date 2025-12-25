@@ -1,57 +1,116 @@
 # Koine
 
-An HTTP gateway that exposes [Claude Code CLI](https://github.com/anthropics/claude-code) as a REST API, plus TypeScript and Python SDKs for easy integration.
+HTTP gateway + SDKs that expose [Claude Code CLI](https://github.com/anthropics/claude-code) as a REST API.
 
-> **Koine** (pronounced /kɔɪˈneɪ/, "koy-NAY") — named after the common Greek dialect that connected the ancient Mediterranean. Koine translates protocols and manages requests so your apps can use Claude Code CLI just like you.
+[![npm](https://img.shields.io/npm/v/@patternzones/koine-sdk)](https://www.npmjs.com/package/@patternzones/koine-sdk)
+[![PyPI](https://img.shields.io/pypi/v/koine-sdk)](https://pypi.org/project/koine-sdk/)
+[![License](https://img.shields.io/badge/license-AGPL--3.0%20%2F%20Commercial-blue)](LICENSE)
+
+> **Koine** (koy-NAY, /kɔɪˈneɪ/) — the common Greek that connected the ancient Mediterranean. Koine connects your apps to Claude Code.
 
 ## Why Koine?
 
-Koine turns Claude Code into a programmable inference layer. Use it to:
+Claude Code is Anthropic's agentic coding assistant — it reads files, runs commands, edits code, and uses tools autonomously. But it's a CLI, not an API.
 
-- **Orchestrate AI-powered services** — connect Koine to your services via VPN or Docker networks
-- **Build agentic workflows** — chain Claude Code calls with structured output and session management
-- **Extend capabilities** — add custom skills, slash commands, and domain-specific context
+**Koine makes Claude Code callable from your applications.** Deploy it as a Docker service, call it from any language, get structured typed responses.
 
-### Power and Responsibility
+### Why Claude Code Instead of a Standard LLM SDK?
 
-> [!CAUTION]
-> **This is both powerful and dangerous.**
->
-> Claude Code has full access to the tools you give it — file system, shell, network. When exposed through Koine, your applications gain that same power.
->
-> **Docker deployment is critical.** Running in a container restricts Claude to the container user's permissions and filesystem, providing essential isolation.
+With a typical LLM SDK, you get text in → text out. Tool use, file access, and code execution require building your own orchestration layer.
 
-### Terms of Service
+Claude Code is that orchestration layer:
 
-> [!WARNING]
-> **Review Anthropic's Terms before deploying.**
->
-> Koine supports two authentication methods with **different terms**:
->
-> - **OAuth tokens** (Claude Pro/Max) — subscription plans may restrict commercial use, automation, and public exposure. See [Anthropic's Terms of Service](https://www.anthropic.com/legal/consumer-terms).
-> - **API keys** (Anthropic API) — pay-per-token with different allowable use cases
->
-> **You are responsible for compliance.**
+- **Agentic loop built-in** — tool calls handled automatically, no orchestration code
+- **File system and bash access** — read, write, edit files and run commands
+- **Skills and commands** — extend with domain knowledge and custom workflows
+- **MCP support** — connect to external tools via Model Context Protocol
+- **Battle-tested** — Anthropic's own agentic runtime, refined in production
 
-### Deployment Best Practices
+### Why Koine Instead of Claude Code Directly?
 
-- **Do not expose your endpoints to public use** if using OAuth — this likely violates Anthropic's Terms
-- **Use Docker** — containers provide critical security isolation
-- **Run on internal networks** — VPN or Docker networks are ideal for service-to-service communication
-- **Authenticate all requests** — the gateway requires an API key separate from Claude authentication
+| Claude Code CLI | Koine |
+|-----------------|-------|
+| Interactive terminal | REST API for any language |
+| Manual invocation | Programmatic access with SDKs |
+| Local sessions | Persistent sessions across requests |
+| Local access only | Network-accessible from any service |
+
+### Who It's For
+
+- **Solo founders** who use Claude Code daily and want to build products with it
+- **Backend developers** adding AI capabilities to services and APIs
+- **AI tinkerers** building agentic workflows, automation, and experiments
+- **Data engineers** who need structured, typed LLM output in pipelines
+- **Platform teams** exposing Claude Code to internal services
 
 ## Quick Start
 
 ```bash
+# Start the gateway
 docker run -d -p 3100:3100 \
-  -e CLAUDE_CODE_GATEWAY_API_KEY=your-key \
-  -e CLAUDE_CODE_OAUTH_TOKEN=your-token \
+  -e CLAUDE_CODE_GATEWAY_API_KEY=your-gateway-key \
+  -e CLAUDE_CODE_OAUTH_TOKEN=your-claude-token \
   ghcr.io/pattern-zones-co/koine:latest
 
-curl http://localhost:3100/health
+# Make your first request
+curl -X POST http://localhost:3100/generate-text \
+  -H "Authorization: Bearer your-gateway-key" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Hello!"}'
 ```
 
-See [Docker Deployment](docs/docker-deployment.md) for version pinning, docker-compose setup, and production configuration.
+See [Docker Deployment](docs/docker-deployment.md) for docker-compose, version pinning, and production configuration.
+
+## Features
+
+- **Text generation** — simple prompts to full responses
+- **Streaming** — real-time Server-Sent Events
+- **Structured output** — type-safe extraction with Zod/Pydantic schemas
+- **Session management** — multi-turn conversations with context persistence
+- **TypeScript & Python SDKs** — full type safety and async support
+- **Extensible** — add custom [skills and slash commands](docs/skills-and-commands.md)
+- **Docker-first** — containerized deployment with security isolation
+
+## Developer Experience
+
+- **Type-safe SDKs** — TypeScript with Zod, Python with Pydantic
+- **Structured output** — extract typed objects, not just strings
+- **Interactive API docs** — Scalar-powered docs at `/docs`
+- **OpenAPI spec** — generate clients for any language
+- **Runnable examples** — copy-paste and go
+
+## SDK Usage
+
+```typescript
+import { createKoine } from '@patternzones/koine-sdk';
+
+const koine = createKoine({
+  baseUrl: 'http://localhost:3100',
+  authKey: 'your-key',
+});
+
+const result = await koine.generateText({ prompt: 'Hello!' });
+console.log(result.text);
+```
+
+- [TypeScript SDK](docs/sdk-guide.md) · [examples](packages/sdks/typescript/examples/)
+- [Python SDK](docs/sdk-guide.md) · [examples](packages/sdks/python/examples/)
+- [REST API reference](docs/api-reference.md) · [OpenAPI spec](docs/openapi.yaml)
+
+## Important Considerations
+
+> [!NOTE]
+> **Security & Compliance**
+>
+> Claude Code has full access to its environment — filesystem, shell, and network. Koine exposes this power to your applications.
+>
+> - **Use Docker** — containers provide essential filesystem and process isolation
+> - **Internal networks only** — deploy on VPN or Docker networks, not public internet
+> - **Know your auth method**:
+>   - *API keys* (Anthropic API) — pay-per-token, suitable for automation
+>   - *OAuth tokens* (Claude Pro/Max) — subscription plans may restrict commercial use and automation; review [Anthropic's Consumer Terms](https://www.anthropic.com/legal/consumer-terms)
+>
+> **You are responsible for compliance with Anthropic's Terms of Service.**
 
 ## Documentation
 
@@ -79,4 +138,4 @@ Dual-licensed under AGPL-3.0 or commercial license. See [LICENSE](LICENSE) for d
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and roadmap.
+We're eager for collaborators! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines and roadmap.
