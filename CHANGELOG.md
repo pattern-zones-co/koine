@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/pattern-zones-co/koine/compare/v2.0.0...v2.0.1) (2025-12-25)
+
+
+### Documentation
+
+* update SDK docs for 2.0 breaking changes ([#54](https://github.com/pattern-zones-co/koine/issues/54)) ([a90095f](https://github.com/pattern-zones-co/koine/commit/a90095f2727edb9d17a338cd81f6483b046daa00))
+
 ## [2.0.0](https://github.com/pattern-zones-co/koine/compare/v1.1.6...v2.0.0) (2025-12-25)
 
 
