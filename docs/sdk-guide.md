@@ -95,3 +95,12 @@ const result2 = await generateText(config, {
   sessionId: result1.sessionId,
 });
 ```
+
+## Runnable Examples
+
+See [docs/examples/typescript/](examples/typescript/) for complete, runnable examples:
+
+- `hello.ts` — Basic text generation
+- `extract-recipe.ts` — Structured output with Zod schemas
+- `stream.ts` — Real-time streaming
+- `conversation.ts` — Multi-turn session persistence

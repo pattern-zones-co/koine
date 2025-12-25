@@ -17,6 +17,7 @@ jobs:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
+      pr: ${{ steps.release.outputs.pr }}
     steps:
       - name: Run release-please
         uses: googleapis/release-please-action@v4
@@ -24,6 +25,47 @@ jobs:
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # Format release PR to fix release-please's JSON formatting
+  format-release-pr:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.pr }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Get PR branch name
+        id: pr-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch=$(gh pr view "${{ needs.release-please.outputs.pr }}" --repo "${{ github.repository }}" --json headRefName -q '.headRefName')
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr-branch.outputs.branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.3"
+
+      - name: Format with Biome
+        run: bun biome format --write .
+
+      - name: Commit formatting changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No formatting changes needed"
+          else
+            git commit -m "chore: format release PR with biome"
+            git push
+          fi
 
   ci-checks:
     needs: release-please

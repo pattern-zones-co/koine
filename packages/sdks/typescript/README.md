@@ -76,6 +76,17 @@ See the [SDK Guide](https://github.com/pattern-zones-co/koine/blob/main/docs/sdk
 - Error handling
 - Multi-turn conversations
 
+## Examples
+
+Runnable examples are available in [docs/examples/typescript/](https://github.com/pattern-zones-co/koine/tree/main/docs/examples/typescript):
+
+```bash
+bun run docs/examples/typescript/hello.ts          # Basic text generation
+bun run docs/examples/typescript/extract-recipe.ts # Structured output with Zod
+bun run docs/examples/typescript/stream.ts         # Real-time streaming
+bun run docs/examples/typescript/conversation.ts   # Multi-turn sessions
+```
+
 ## License
 
 Dual-licensed under [AGPL-3.0 or commercial license](https://github.com/pattern-zones-co/koine/blob/main/LICENSE).

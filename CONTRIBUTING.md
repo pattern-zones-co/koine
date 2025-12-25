@@ -13,6 +13,17 @@ bun run openapi:generate # Regenerate OpenAPI spec
 bun run openapi:check    # Verify spec is up to date
 ```
 
+## Running Examples
+
+With a gateway running, you can test SDK examples:
+
+```bash
+bun run docs/examples/typescript/hello.ts
+bun run docs/examples/typescript/conversation.ts
+```
+
+See [docs/examples/](docs/examples/) for all available examples.
+
 ## Pre-commit Hooks
 
 Husky runs automatic checks on every commit. The following tools are strongly recommended for local development:
