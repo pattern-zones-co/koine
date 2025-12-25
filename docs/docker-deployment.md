@@ -34,13 +34,13 @@ Available version formats:
 
 ## Building from Source
 
-Build from source using the dev profile:
+Build from source instead of pulling the pre-built image:
 
 ```bash
-docker compose --profile dev up --build
+docker compose up --build
 ```
 
-This uses the `koine-dev` service which builds locally from the Dockerfile. See [CONTRIBUTING.md](../CONTRIBUTING.md) for development setup.
+This builds locally from the Dockerfile. See [CONTRIBUTING.md](../CONTRIBUTING.md) for development setup.
 
 ## Configuration
 

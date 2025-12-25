@@ -3,6 +3,9 @@ name: koine
 services:
   koine:
     image: ghcr.io/pattern-zones-co/koine:${KOINE_VERSION:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "127.0.0.1:${GATEWAY_PORT:-3100}:3100"
     environment:
@@ -31,37 +34,6 @@ services:
       - ALL
     # Note: read_only disabled because Claude CLI needs to write to /home/bun/.claude.json
     # Other security hardening (no-new-privileges, cap_drop) remains in place
-    read_only: false
-    tmpfs:
-      - /tmp:mode=1777,size=100m
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Local development service - builds from source
-  koine-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    profiles:
-      - dev
-    ports:
-      - "127.0.0.1:${GATEWAY_PORT:-3100}:3100"
-    environment:
-      PORT: 3100
-      HOME: /home/bun
-      CLAUDE_CODE_GATEWAY_API_KEY: ${CLAUDE_CODE_GATEWAY_API_KEY:-}
-      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-    volumes:
-      - koine-data:/home/bun/.claude
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
     read_only: false
     tmpfs:
       - /tmp:mode=1777,size=100m
