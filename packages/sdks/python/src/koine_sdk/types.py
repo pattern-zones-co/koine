@@ -1,11 +1,11 @@
-"""Type definitions for Koine SDK."""
+"""Public type definitions for Koine SDK."""
 
 import asyncio
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 T = TypeVar("T")
 
@@ -30,6 +30,8 @@ class KoineConfig:
 class KoineUsage(BaseModel):
     """Usage information from Koine gateway service."""
 
+    model_config = ConfigDict(frozen=True)
+
     input_tokens: int = Field(alias="inputTokens")
     output_tokens: int = Field(alias="outputTokens")
     total_tokens: int = Field(alias="totalTokens")
@@ -38,6 +40,8 @@ class KoineUsage(BaseModel):
 class GenerateTextResult(BaseModel):
     """Result from text generation."""
 
+    model_config = ConfigDict(frozen=True)
+
     text: str
     usage: KoineUsage
     session_id: str
@@ -45,6 +49,8 @@ class GenerateTextResult(BaseModel):
 
 class GenerateObjectResult(BaseModel, Generic[T]):
     """Result from object generation."""
+
+    model_config = ConfigDict(frozen=True)
 
     object: T
     raw_text: str
@@ -90,58 +96,3 @@ class StreamTextResult:
     async def text(self) -> str:
         """Full accumulated text. Resolves when stream completes."""
         return await self._text_future
-
-
-# Internal response types for parsing gateway responses
-# These are not exported in __init__.py but are used across package modules
-
-
-class GatewayTextResponse(BaseModel):
-    """Response from generate-text endpoint (internal)."""
-
-    text: str
-    usage: KoineUsage
-    sessionId: str
-
-
-class GatewayObjectResponse(BaseModel):
-    """Response from generate-object endpoint (internal)."""
-
-    object: object
-    rawText: str
-    usage: KoineUsage
-    sessionId: str
-
-
-class GatewayErrorResponse(BaseModel):
-    """Error response from Koine gateway service (internal)."""
-
-    error: str
-    code: str
-    rawText: str | None = None
-
-
-class SSETextEvent(BaseModel):
-    """SSE text event from stream endpoint (internal)."""
-
-    text: str
-
-
-class SSESessionEvent(BaseModel):
-    """SSE session event from stream endpoint (internal)."""
-
-    sessionId: str
-
-
-class SSEResultEvent(BaseModel):
-    """SSE result event from stream endpoint (internal)."""
-
-    sessionId: str
-    usage: KoineUsage
-
-
-class SSEErrorEvent(BaseModel):
-    """SSE error event from stream endpoint (internal)."""
-
-    error: str
-    code: str | None = None

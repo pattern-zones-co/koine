@@ -4,27 +4,28 @@ Koine SDK
 An async Python client for interacting with Koine gateway services.
 
 Example:
-    from koine_sdk import generate_text, KoineConfig
+    from koine_sdk import create_koine, KoineConfig
 
-    config = KoineConfig(
+    koine = create_koine(KoineConfig(
         base_url="http://localhost:3100",
         timeout=300.0,
         auth_key="your-api-key",
         model="sonnet",
-    )
+    ))
 
-    result = await generate_text(config, prompt="Hello!")
+    result = await koine.generate_text(prompt="Hello!")
     print(result.text)
 """
 
-__version__ = "1.1.5"
+__version__ = "2.0.0"
 
-# Types
-# Client functions
-from .client import generate_object, generate_text, stream_text
+# Client factory (primary API)
+from .client import KoineClient, create_koine
 
 # Errors
-from .errors import KoineError
+from .errors import KoineError, KoineErrorCode
+
+# Types
 from .types import (
     GenerateObjectResult,
     GenerateTextResult,
@@ -36,11 +37,11 @@ from .types import (
 __all__ = [
     "GenerateObjectResult",
     "GenerateTextResult",
+    "KoineClient",
     "KoineConfig",
     "KoineError",
+    "KoineErrorCode",
     "KoineUsage",
     "StreamTextResult",
-    "generate_object",
-    "generate_text",
-    "stream_text",
+    "create_koine",
 ]

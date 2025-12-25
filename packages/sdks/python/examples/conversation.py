@@ -14,7 +14,7 @@ import sys
 
 from dotenv import find_dotenv, load_dotenv
 
-from koine_sdk import KoineConfig, KoineError, generate_text
+from koine_sdk import KoineConfig, KoineError, create_koine
 
 load_dotenv(find_dotenv())
 
@@ -30,12 +30,13 @@ async def main() -> None:
         timeout=300.0,
     )
 
+    koine = create_koine(config)
+
     print("=== Multi-turn Conversation Example ===\n")
 
     # Turn 1: Introduce ourselves
     print("Turn 1: Introducing myself...")
-    turn1 = await generate_text(
-        config,
+    turn1 = await koine.generate_text(
         prompt=(
             "My name is Alice and my favorite color is blue. Please acknowledge this."
         ),
@@ -44,8 +45,7 @@ async def main() -> None:
 
     # Turn 2: Ask a follow-up question using the same session
     print("Turn 2: Testing if the model remembers...")
-    turn2 = await generate_text(
-        config,
+    turn2 = await koine.generate_text(
         prompt="What's my name and what's my favorite color?",
         session_id=turn1.session_id,  # Continue the conversation
     )
@@ -53,8 +53,7 @@ async def main() -> None:
 
     # Turn 3: Add more context and ask another question
     print("Turn 3: Adding more context...")
-    turn3 = await generate_text(
-        config,
+    turn3 = await koine.generate_text(
         prompt=(
             "I also have a cat named Whiskers. "
             "Now tell me everything you know about me."

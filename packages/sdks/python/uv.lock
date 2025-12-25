@@ -191,7 +191,7 @@ wheels = [
 
 [[package]]
 name = "koine-sdk"
-version = "1.1.5"
+version = "2.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

@@ -15,7 +15,7 @@ import sys
 from dotenv import find_dotenv, load_dotenv
 from pydantic import BaseModel, Field
 
-from koine_sdk import KoineConfig, KoineError, generate_object
+from koine_sdk import KoineConfig, KoineError, create_koine
 
 load_dotenv(find_dotenv())
 
@@ -41,10 +41,11 @@ async def main() -> None:
         timeout=300.0,
     )
 
+    koine = create_koine(config)
+
     print("Extracting recipe from natural language...\n")
 
-    result = await generate_object(
-        config,
+    result = await koine.generate_object(
         prompt="""Extract the recipe from this description:
 
 Make classic pancakes by mixing 1 cup flour, 1 egg, 1 cup milk, and 2 tbsp butter.

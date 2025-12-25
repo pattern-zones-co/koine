@@ -13,7 +13,7 @@ import sys
 
 from dotenv import find_dotenv, load_dotenv
 
-from koine_sdk import KoineConfig, KoineError, generate_text
+from koine_sdk import KoineConfig, KoineError, create_koine
 
 load_dotenv(find_dotenv())
 
@@ -29,10 +29,11 @@ async def main() -> None:
         timeout=300.0,
     )
 
+    koine = create_koine(config)
+
     print("Sending request to Koine gateway...\n")
 
-    result = await generate_text(
-        config,
+    result = await koine.generate_text(
         prompt="What are the three primary colors? Answer in one sentence.",
     )
 

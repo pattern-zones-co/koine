@@ -14,7 +14,7 @@ import sys
 
 from dotenv import find_dotenv, load_dotenv
 
-from koine_sdk import KoineConfig, KoineError, stream_text
+from koine_sdk import KoineConfig, KoineError, create_koine
 
 load_dotenv(find_dotenv())
 
@@ -30,10 +30,11 @@ async def main() -> None:
         timeout=300.0,
     )
 
+    koine = create_koine(config)
+
     print("Streaming response:\n")
 
-    async with stream_text(
-        config,
+    async with koine.stream_text(
         prompt=(
             "Write a limerick about a programmer who loves coffee. "
             "Just the limerick, no explanation."
