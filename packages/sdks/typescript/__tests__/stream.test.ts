@@ -55,7 +55,7 @@ describe("streamText", () => {
 		expect(body.prompt).toBe("Say hello");
 	});
 
-	it("should return textStream that yields text chunks", async () => {
+	it("should return textStream that yields text chunks via getReader", async () => {
 		const events = [
 			{ event: "session", data: { sessionId: "session-abc" } },
 			{ event: "text", data: { text: "Hello" } },
@@ -77,7 +77,7 @@ describe("streamText", () => {
 			prompt: "Test prompt",
 		});
 
-		// Collect all chunks from the stream
+		// Collect all chunks from the stream using getReader
 		const chunks: string[] = [];
 		const reader = result.textStream.getReader();
 		while (true) {
@@ -87,6 +87,37 @@ describe("streamText", () => {
 		}
 
 		expect(chunks).toEqual(["Hello", " world", "!"]);
+	});
+
+	it("should return textStream that supports for-await-of iteration", async () => {
+		const events = [
+			{ event: "session", data: { sessionId: "session-iter" } },
+			{ event: "text", data: { text: "Async" } },
+			{ event: "text", data: { text: " iteration" } },
+			{ event: "text", data: { text: " works" } },
+			{
+				event: "result",
+				data: {
+					sessionId: "session-iter",
+					usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+				},
+			},
+			{ event: "done", data: { code: 0 } },
+		];
+
+		global.fetch = vi.fn().mockResolvedValue(createMockSSEResponse(events));
+
+		const result = await streamText(testConfig, {
+			prompt: "Test prompt",
+		});
+
+		// Collect all chunks using for-await-of
+		const chunks: string[] = [];
+		for await (const chunk of result.textStream) {
+			chunks.push(chunk);
+		}
+
+		expect(chunks).toEqual(["Async", " iteration", " works"]);
 	});
 
 	it("should resolve text promise with accumulated text", async () => {

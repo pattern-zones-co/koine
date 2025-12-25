@@ -11,7 +11,7 @@
 import {
 	type KoineConfig,
 	KoineError,
-	generateText,
+	createKoine,
 } from "@patternzones/koine-sdk";
 
 // Bun automatically loads .env from current working directory
@@ -26,12 +26,14 @@ const config: KoineConfig = {
 	timeout: 300000,
 };
 
+const koine = createKoine(config);
+
 async function main() {
 	console.log("=== Multi-turn Conversation Example ===\n");
 
 	// Turn 1: Introduce ourselves
 	console.log("Turn 1: Introducing myself...");
-	const turn1 = await generateText(config, {
+	const turn1 = await koine.generateText({
 		prompt:
 			"My name is Alice and my favorite color is blue. Please acknowledge this.",
 	});
@@ -39,7 +41,7 @@ async function main() {
 
 	// Turn 2: Ask a follow-up question using the same session
 	console.log("Turn 2: Testing if the model remembers...");
-	const turn2 = await generateText(config, {
+	const turn2 = await koine.generateText({
 		prompt: "What's my name and what's my favorite color?",
 		sessionId: turn1.sessionId, // Continue the conversation
 	});
@@ -47,7 +49,7 @@ async function main() {
 
 	// Turn 3: Add more context and ask another question
 	console.log("Turn 3: Adding more context...");
-	const turn3 = await generateText(config, {
+	const turn3 = await koine.generateText({
 		prompt:
 			"I also have a cat named Whiskers. Now tell me everything you know about me.",
 		sessionId: turn1.sessionId, // Same session continues

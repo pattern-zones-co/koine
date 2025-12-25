@@ -11,7 +11,7 @@
 import {
 	type KoineConfig,
 	KoineError,
-	streamText,
+	createKoine,
 } from "@patternzones/koine-sdk";
 
 // Bun automatically loads .env from current working directory
@@ -26,10 +26,12 @@ const config: KoineConfig = {
 	timeout: 300000,
 };
 
+const koine = createKoine(config);
+
 async function main() {
 	console.log("Streaming response:\n");
 
-	const result = await streamText(config, {
+	const result = await koine.streamText({
 		prompt:
 			"Write a limerick about a programmer who loves coffee. Just the limerick, no explanation.",
 	});

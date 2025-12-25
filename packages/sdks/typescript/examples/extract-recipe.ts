@@ -10,7 +10,7 @@
 import {
 	type KoineConfig,
 	KoineError,
-	generateObject,
+	createKoine,
 } from "@patternzones/koine-sdk";
 import { z } from "zod";
 
@@ -26,6 +26,8 @@ const config: KoineConfig = {
 	timeout: 300000,
 };
 
+const koine = createKoine(config);
+
 // Define the schema for a recipe
 const RecipeSchema = z.object({
 	name: z.string().describe("Name of the recipe"),
@@ -38,7 +40,7 @@ const RecipeSchema = z.object({
 async function main() {
 	console.log("Extracting recipe from natural language...\n");
 
-	const result = await generateObject(config, {
+	const result = await koine.generateObject({
 		prompt: `Extract the recipe from this description:
 
 Make classic pancakes by mixing 1 cup flour, 1 egg, 1 cup milk, and 2 tbsp melted butter.

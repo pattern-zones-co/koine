@@ -10,7 +10,7 @@
 import {
 	type KoineConfig,
 	KoineError,
-	generateText,
+	createKoine,
 } from "@patternzones/koine-sdk";
 
 // Bun automatically loads .env from current working directory
@@ -25,10 +25,12 @@ const config: KoineConfig = {
 	timeout: 300000,
 };
 
+const koine = createKoine(config);
+
 async function main() {
 	console.log("Sending request to Koine gateway...\n");
 
-	const result = await generateText(config, {
+	const result = await koine.generateText({
 		prompt: "What are the three primary colors? Answer in one sentence.",
 	});
 

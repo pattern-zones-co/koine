@@ -53,8 +53,8 @@ export interface ErrorResponse {
  * Result from streaming text generation.
  */
 export interface KoineStreamResult {
-	/** ReadableStream of text chunks as they arrive */
-	readonly textStream: ReadableStream<string>;
+	/** Stream of text chunks as they arrive. Supports both ReadableStream methods and async iteration. */
+	readonly textStream: ReadableStream<string> & AsyncIterable<string>;
 	/** Session ID for conversation continuity (resolves early in stream, after session event) */
 	readonly sessionId: Promise<string>;
 	/** Usage stats (resolves when stream completes via result event) */

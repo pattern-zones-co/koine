@@ -222,8 +222,24 @@ export async function streamText(
 		}),
 	);
 
+	// Augment the stream with Symbol.asyncIterator for ergonomic for-await-of usage
+	const iterableTextStream = Object.assign(textStream, {
+		async *[Symbol.asyncIterator](): AsyncGenerator<string> {
+			const reader = textStream.getReader();
+			try {
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) return;
+					yield value;
+				}
+			} finally {
+				reader.releaseLock();
+			}
+		},
+	});
+
 	return {
-		textStream,
+		textStream: iterableTextStream,
 		sessionId: sessionIdPromise,
 		usage: usagePromise,
 		text: textPromise,
