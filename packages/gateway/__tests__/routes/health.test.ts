@@ -11,6 +11,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import healthRouter from "../../src/routes/health.js";
 import { createMockChildProcess } from "../helpers.js";
 
+/** Schedule callback after spawn is called (non-blocking) */
+function afterSpawnCalled(
+	mockSpawn: ReturnType<typeof vi.fn>,
+	callback: () => void,
+): void {
+	const check = () => {
+		if (mockSpawn.mock.calls.length > 0) {
+			callback();
+		} else {
+			setTimeout(check, 1);
+		}
+	};
+	check();
+}
+
 // Mock node:child_process
 vi.mock("node:child_process", () => ({
 	spawn: vi.fn(),
@@ -42,11 +57,11 @@ describe("Health Route", () => {
 			const app = createTestApp();
 			const responsePromise = request(app).get("/health");
 
-			// Simulate successful claude --version
-			setTimeout(() => {
+			// Simulate successful claude --version after spawn is called
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.exitCode = 0;
 				mockProc.emit("close", 0, null);
-			}, 10);
+			});
 
 			const res = await responsePromise;
 
@@ -65,11 +80,11 @@ describe("Health Route", () => {
 			const app = createTestApp();
 			const responsePromise = request(app).get("/health");
 
-			// Simulate failed claude --version
-			setTimeout(() => {
+			// Simulate failed claude --version after spawn is called
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.exitCode = 1;
 				mockProc.emit("close", 1, null);
-			}, 10);
+			});
 
 			const res = await responsePromise;
 
@@ -88,10 +103,10 @@ describe("Health Route", () => {
 			const app = createTestApp();
 			const responsePromise = request(app).get("/health");
 
-			// Simulate spawn error (e.g., command not found)
-			setTimeout(() => {
+			// Simulate spawn error (e.g., command not found) after spawn is called
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.emit("error", new Error("ENOENT"));
-			}, 10);
+			});
 
 			const res = await responsePromise;
 
@@ -107,10 +122,10 @@ describe("Health Route", () => {
 			const responsePromise = request(app).get("/health");
 
 			// Simulate successful response so the request completes
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.exitCode = 0;
 				mockProc.emit("close", 0, null);
-			}, 10);
+			});
 
 			await responsePromise;
 
@@ -155,10 +170,10 @@ describe("Health Route", () => {
 			const responsePromise = request(app).get("/health");
 
 			// CLI completes successfully - this should cancel the 5s timeout
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.exitCode = 0;
 				mockProc.emit("close", 0, null);
-			}, 10);
+			});
 
 			const res = await responsePromise;
 
