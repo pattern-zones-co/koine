@@ -1,10 +1,14 @@
 """Type definitions for Koine SDK."""
 
+import asyncio
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    pass  # For forward references
 
 T = TypeVar("T")
 
@@ -58,35 +62,37 @@ class StreamTextResult:
     The text_stream yields text chunks as they arrive.
     session_id(), usage(), and text() are async methods that resolve
     at different times during the stream.
+
+    Important: You must consume text_stream for the futures to resolve.
+    The futures are set as SSE events are processed during iteration.
     """
 
     text_stream: AsyncIterator[str]
     """Async iterator of text chunks as they arrive"""
 
-    _session_id: str | None = None
-    _usage: KoineUsage | None = None
-    _text: str | None = None
+    session_id_future: asyncio.Future[str]
+    """Future that resolves with session ID (early in stream)"""
+
+    usage_future: asyncio.Future[KoineUsage]
+    """Future that resolves with usage stats (when stream completes)"""
+
+    text_future: asyncio.Future[str]
+    """Future that resolves with full text (when stream completes)"""
 
     async def session_id(self) -> str:
         """Session ID for conversation continuity.
 
         Resolves early in stream, after session event.
         """
-        if self._session_id is None:
-            raise RuntimeError("Session ID not yet available")
-        return self._session_id
+        return await self.session_id_future
 
     async def usage(self) -> KoineUsage:
         """Usage stats. Resolves when stream completes."""
-        if self._usage is None:
-            raise RuntimeError("Usage not yet available")
-        return self._usage
+        return await self.usage_future
 
     async def text(self) -> str:
         """Full accumulated text. Resolves when stream completes."""
-        if self._text is None:
-            raise RuntimeError("Text not yet available")
-        return self._text
+        return await self.text_future
 
 
 # Internal response types for parsing gateway responses
