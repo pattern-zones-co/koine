@@ -78,13 +78,14 @@ See the [SDK Guide](https://github.com/pattern-zones-co/koine/blob/main/docs/sdk
 
 ## Examples
 
-Runnable examples are available in [docs/examples/typescript/](https://github.com/pattern-zones-co/koine/tree/main/docs/examples/typescript):
+Runnable examples are available in the [`examples/`](https://github.com/pattern-zones-co/koine/tree/main/packages/sdks/typescript/examples) directory. Run from the SDK directory using the npm scripts (which load `.env` from the project root):
 
 ```bash
-bun run docs/examples/typescript/hello.ts          # Basic text generation
-bun run docs/examples/typescript/extract-recipe.ts # Structured output with Zod
-bun run docs/examples/typescript/stream.ts         # Real-time streaming
-bun run docs/examples/typescript/conversation.ts   # Multi-turn sessions
+cd packages/sdks/typescript
+bun run example:hello        # Basic text generation
+bun run example:recipe       # Structured output with Zod
+bun run example:stream       # Real-time streaming
+bun run example:conversation # Multi-turn sessions
 ```
 
 ## License

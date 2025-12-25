@@ -15,14 +15,15 @@ bun run openapi:check    # Verify spec is up to date
 
 ## Running Examples
 
-With a gateway running, you can test SDK examples:
+With a gateway running, you can test SDK examples from the SDK directories:
 
 ```bash
-bun run docs/examples/typescript/hello.ts
-bun run docs/examples/typescript/conversation.ts
+cd packages/sdks/typescript
+bun run example:hello
+bun run example:conversation
 ```
 
-See [docs/examples/](docs/examples/) for all available examples.
+The npm scripts load `.env` from the project root. See each SDK's `examples/` directory for all available examples.
 
 ## Pre-commit Hooks
 

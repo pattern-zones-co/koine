@@ -3,8 +3,8 @@
  *
  * Demonstrates structured data extraction using Zod schemas for type-safe output.
  *
- * Run from project root:
- *   bun run docs/examples/typescript/extract-recipe.ts
+ * Run from packages/sdks/typescript:
+ *   bun run example:recipe
  */
 
 import {

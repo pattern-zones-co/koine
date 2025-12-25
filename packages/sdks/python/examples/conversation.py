@@ -5,7 +5,7 @@ Demonstrates how to maintain context across multiple requests using session_id.
 The model remembers information from previous turns in the conversation.
 
 Run from packages/sdks/python:
-    uv run python ../../../docs/examples/python/conversation.py
+    uv run python examples/conversation.py
 """
 
 import asyncio

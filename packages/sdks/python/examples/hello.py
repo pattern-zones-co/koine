@@ -4,7 +4,7 @@ hello.py - Basic generate_text example
 Demonstrates the simplest use case: asking a question and getting a text response.
 
 Run from packages/sdks/python:
-    uv run python ../../../docs/examples/python/hello.py
+    uv run python examples/hello.py
 """
 
 import asyncio

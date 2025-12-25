@@ -4,8 +4,8 @@
  * Demonstrates streaming responses with typewriter effect.
  * Text appears progressively as tokens arrive from the API.
  *
- * Run from project root:
- *   bun run docs/examples/typescript/stream.ts
+ * Run from packages/sdks/typescript:
+ *   bun run example:stream
  */
 
 import {

@@ -23,7 +23,11 @@
 		"test": "vitest",
 		"test:run": "vitest run",
 		"test:coverage": "vitest run --coverage",
-		"lint": "biome check ."
+		"lint": "biome check .",
+		"example:hello": "bun --env-file=../../../.env run examples/hello.ts",
+		"example:stream": "bun --env-file=../../../.env run examples/stream.ts",
+		"example:recipe": "bun --env-file=../../../.env run examples/extract-recipe.ts",
+		"example:conversation": "bun --env-file=../../../.env run examples/conversation.ts"
 	},
 	"dependencies": {
 		"zod": "3.25.76",

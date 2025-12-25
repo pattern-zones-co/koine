@@ -79,15 +79,15 @@ See the [SDK Guide](https://github.com/pattern-zones-co/koine/blob/main/docs/sdk
 
 ## Examples
 
-Runnable examples are available in [docs/examples/python/](https://github.com/pattern-zones-co/koine/tree/main/docs/examples/python):
+Runnable examples are available in the [`examples/`](https://github.com/pattern-zones-co/koine/tree/main/packages/sdks/python/examples) directory. Run from the SDK directory:
 
 ```bash
 cd packages/sdks/python
 uv pip install -e ".[dev]"
-uv run python ../../../docs/examples/python/hello.py           # Basic text generation
-uv run python ../../../docs/examples/python/extract_recipe.py  # Structured output with Pydantic
-uv run python ../../../docs/examples/python/stream.py          # Real-time streaming
-uv run python ../../../docs/examples/python/conversation.py    # Multi-turn sessions
+uv run python examples/hello.py           # Basic text generation
+uv run python examples/extract_recipe.py  # Structured output with Pydantic
+uv run python examples/stream.py          # Real-time streaming
+uv run python examples/conversation.py    # Multi-turn sessions
 ```
 
 ## License

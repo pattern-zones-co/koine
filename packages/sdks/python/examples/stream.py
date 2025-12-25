@@ -5,7 +5,7 @@ Demonstrates streaming responses with typewriter effect.
 Text appears progressively as tokens arrive from the API.
 
 Run from packages/sdks/python:
-    uv run python ../../../docs/examples/python/stream.py
+    uv run python examples/stream.py
 """
 
 import asyncio

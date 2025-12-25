@@ -4,8 +4,8 @@
  * Demonstrates how to maintain context across multiple requests using sessionId.
  * The model remembers information from previous turns in the conversation.
  *
- * Run from project root:
- *   bun run docs/examples/typescript/conversation.ts
+ * Run from packages/sdks/typescript:
+ *   bun run example:conversation
  */
 
 import {

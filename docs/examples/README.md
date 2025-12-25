@@ -1,54 +1,8 @@
 # SDK Examples
 
-Examples demonstrating how to use Koine SDKs.
+Examples demonstrating how to use Koine SDKs are located in their respective SDK package directories:
 
-## Prerequisites
+- **TypeScript**: [`packages/sdks/typescript/examples/`](../../packages/sdks/typescript/examples/)
+- **Python**: [`packages/sdks/python/examples/`](../../packages/sdks/python/examples/)
 
-1. **Docker gateway running**: Start the gateway with:
-   ```bash
-   docker run -d --env-file .env -p 3100:3100 ghcr.io/pattern-zones-co/koine:latest
-   ```
-
-2. **Environment configured**: Ensure your `.env` file has:
-   ```
-   CLAUDE_CODE_GATEWAY_API_KEY=your-api-key
-   GATEWAY_PORT=3100  # optional, defaults to 3100
-   ```
-
-## TypeScript Examples
-
-Using `@patternzones/koine-sdk`. Run from the project root:
-
-```bash
-bun run docs/examples/typescript/hello.ts
-bun run docs/examples/typescript/extract-recipe.ts
-bun run docs/examples/typescript/stream.ts
-bun run docs/examples/typescript/conversation.ts
-```
-
-| Example | Description |
-|---------|-------------|
-| `hello.ts` | Basic `generateText` usage |
-| `extract-recipe.ts` | Structured output with Zod schemas |
-| `stream.ts` | Real-time streaming with `streamText` |
-| `conversation.ts` | Multi-turn conversations with `sessionId` |
-
-## Python Examples
-
-Using `koine-sdk`. First install the SDK with dev dependencies, then run from the SDK directory:
-
-```bash
-cd packages/sdks/python
-uv pip install -e ".[dev]"
-uv run python ../../../docs/examples/python/hello.py
-uv run python ../../../docs/examples/python/extract_recipe.py
-uv run python ../../../docs/examples/python/stream.py
-uv run python ../../../docs/examples/python/conversation.py
-```
-
-| Example | Description |
-|---------|-------------|
-| `hello.py` | Basic `generate_text` usage |
-| `extract_recipe.py` | Structured output with Pydantic schemas |
-| `stream.py` | Real-time streaming with `stream_text` |
-| `conversation.py` | Multi-turn conversations with `session_id` |
+See each SDK's README for prerequisites and instructions on running the examples.

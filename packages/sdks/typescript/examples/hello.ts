@@ -3,8 +3,8 @@
  *
  * Demonstrates the simplest use case: asking a question and getting a text response.
  *
- * Run from project root:
- *   bun run docs/examples/typescript/hello.ts
+ * Run from packages/sdks/typescript:
+ *   bun run example:hello
  */
 
 import {

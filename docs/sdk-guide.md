@@ -208,7 +208,7 @@ result2 = await generate_text(
 
 ### TypeScript
 
-See [docs/examples/typescript/](examples/typescript/) for complete, runnable examples:
+See [`packages/sdks/typescript/examples/`](../packages/sdks/typescript/examples/) for complete, runnable examples:
 
 - `hello.ts` — Basic text generation
 - `extract-recipe.ts` — Structured output with Zod schemas
@@ -217,7 +217,7 @@ See [docs/examples/typescript/](examples/typescript/) for complete, runnable exa
 
 ### Python
 
-See [docs/examples/python/](examples/python/) for complete, runnable examples:
+See [`packages/sdks/python/examples/`](../packages/sdks/python/examples/) for complete, runnable examples:
 
 - `hello.py` — Basic text generation
 - `extract_recipe.py` — Structured output with Pydantic schemas

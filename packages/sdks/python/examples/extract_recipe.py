@@ -4,7 +4,7 @@ extract_recipe.py - generate_object example with Pydantic schema
 Demonstrates structured data extraction using Pydantic models for type-safe output.
 
 Run from packages/sdks/python:
-    uv run python ../../../docs/examples/python/extract_recipe.py
+    uv run python examples/extract_recipe.py
 """
 
 import asyncio
