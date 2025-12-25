@@ -45,7 +45,7 @@ jobs:
           bun-version: "1.3.3"
 
       - name: Format with Biome
-        run: bunx @biomejs/biome format --write .
+        run: bunx @biomejs/biome@1.9.4 format --write .
 
       - name: Commit formatting changes
         run: |
