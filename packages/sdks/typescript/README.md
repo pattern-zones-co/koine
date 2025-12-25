@@ -1,6 +1,17 @@
 # @patternzones/koine-sdk
 
-TypeScript SDK for [Koine](../../../README.md) — the HTTP gateway for Claude Code CLI.
+TypeScript SDK for [Koine](https://github.com/pattern-zones-co/koine) — the HTTP gateway for Claude Code CLI.
+
+## Running the Gateway
+
+```bash
+docker run -d -p 3100:3100 \
+  -e CLAUDE_CODE_GATEWAY_API_KEY=your-key \
+  -e CLAUDE_CODE_OAUTH_TOKEN=your-token \
+  ghcr.io/pattern-zones-co/koine:latest
+```
+
+See [Docker Deployment](https://github.com/pattern-zones-co/koine/blob/main/docs/docker-deployment.md) for version pinning and production setup.
 
 ## Installation
 
@@ -57,7 +68,7 @@ console.log(result.text);
 
 ## Documentation
 
-See the [SDK Guide](../../../docs/sdk-guide.md) for:
+See the [SDK Guide](https://github.com/pattern-zones-co/koine/blob/main/docs/sdk-guide.md) for:
 
 - Configuration options
 - Streaming examples
@@ -67,4 +78,4 @@ See the [SDK Guide](../../../docs/sdk-guide.md) for:
 
 ## License
 
-[AGPL-3.0](../../../LICENSE)
+Dual-licensed under [AGPL-3.0 or commercial license](https://github.com/pattern-zones-co/koine/blob/main/LICENSE).

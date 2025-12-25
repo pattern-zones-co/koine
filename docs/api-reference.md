@@ -1,6 +1,6 @@
 # API Reference
 
-> **TODO**: Generate OpenAPI spec from Zod schemas. See [#17](https://github.com/pattern-zones-co/koine/issues/17).
+The gateway provides interactive API documentation at [`/docs`](http://localhost:3100/docs) powered by [Scalar](https://scalar.com/). The raw OpenAPI 3.1 specification is available at [`/openapi.yaml`](http://localhost:3100/openapi.yaml).
 
 ## Authentication
 
@@ -16,6 +16,8 @@ curl -H "Authorization: Bearer $CLAUDE_CODE_GATEWAY_API_KEY" \
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/health` | Health check (no auth) |
+| GET | `/docs` | Interactive API docs (no auth) |
+| GET | `/openapi.yaml` | OpenAPI spec (no auth) |
 | POST | `/generate-text` | Generate text |
 | POST | `/generate-object` | Extract structured JSON |
 | POST | `/stream` | Stream via SSE |

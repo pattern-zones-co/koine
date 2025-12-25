@@ -6,9 +6,11 @@ We're eager for collaborators! This project is in early stages and there's plent
 
 ```bash
 bun install
-bun run dev      # Start gateway with hot reload
-bun run test     # Run tests
-bun run lint     # Lint check
+bun run dev              # Start gateway with hot reload
+bun run test             # Run tests
+bun run lint             # Lint check
+bun run openapi:generate # Regenerate OpenAPI spec
+bun run openapi:check    # Verify spec is up to date
 ```
 
 ## Pre-commit Hooks
