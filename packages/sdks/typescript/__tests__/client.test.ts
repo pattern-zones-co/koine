@@ -273,7 +273,7 @@ describe("Koine SDK Client", () => {
 
 			await expect(
 				generateText(testConfig, { prompt: "test" }),
-			).rejects.toThrow("The operation was aborted");
+			).rejects.toThrow("Request aborted");
 		});
 
 		it("should handle empty text response", async () => {

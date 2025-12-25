@@ -22,21 +22,12 @@
  * ```
  */
 
-// Types
-export type {
-	KoineConfig,
-	KoineUsage,
-	KoineStreamResult,
-	GenerateTextResponse,
-	GenerateObjectResponse,
-	ErrorResponse,
-	SSETextEvent,
-	SSEResultEvent,
-	SSEErrorEvent,
-} from "./types.js";
+// Public types - only export types that users need
+export type { KoineConfig, KoineUsage, KoineStreamResult } from "./types.js";
 
 // Errors
 export { KoineError } from "./errors.js";
+export type { KoineErrorCode } from "./errors.js";
 
 // Client functions
 export { generateText, streamText, generateObject } from "./client.js";

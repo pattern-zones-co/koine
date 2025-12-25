@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { KoineError } from "./errors.js";
+import { KoineError, type KoineErrorCode } from "./errors.js";
 import type {
 	ErrorResponse,
 	GenerateObjectResponse,
@@ -12,6 +12,107 @@ import type {
 	SSEResultEvent,
 	SSETextEvent,
 } from "./types.js";
+
+/**
+ * Known error codes for type-safe validation.
+ */
+const KNOWN_ERROR_CODES = new Set<KoineErrorCode>([
+	// SDK-generated errors
+	"HTTP_ERROR",
+	"INVALID_RESPONSE",
+	"INVALID_CONFIG",
+	"VALIDATION_ERROR",
+	"STREAM_ERROR",
+	"SSE_PARSE_ERROR",
+	"NO_SESSION",
+	"NO_USAGE",
+	"NO_RESPONSE_BODY",
+	"TIMEOUT",
+	"NETWORK_ERROR",
+	// Gateway-returned errors
+	"INVALID_PARAMS",
+	"AUTH_ERROR",
+	"UNAUTHORIZED",
+	"SERVER_ERROR",
+	"SCHEMA_ERROR",
+	"RATE_LIMITED",
+	"CONTEXT_OVERFLOW",
+]);
+
+/**
+ * Coerces an API error code to a known KoineErrorCode.
+ * Falls back to the provided default if the code is unknown.
+ */
+function toErrorCode(
+	code: string | undefined,
+	fallback: KoineErrorCode,
+): KoineErrorCode {
+	if (code && KNOWN_ERROR_CODES.has(code as KoineErrorCode)) {
+		return code as KoineErrorCode;
+	}
+	return fallback;
+}
+
+/**
+ * Validates config parameters before making requests.
+ * @throws {KoineError} with code 'INVALID_CONFIG' if config is invalid
+ */
+function validateConfig(config: KoineConfig): void {
+	if (!config.baseUrl) {
+		throw new KoineError("baseUrl is required", "INVALID_CONFIG");
+	}
+	if (!config.authKey) {
+		throw new KoineError("authKey is required", "INVALID_CONFIG");
+	}
+	if (typeof config.timeout !== "number" || config.timeout <= 0) {
+		throw new KoineError("timeout must be a positive number", "INVALID_CONFIG");
+	}
+}
+
+/**
+ * Creates an AbortSignal that combines timeout with optional user signal.
+ */
+function createAbortSignal(
+	timeout: number,
+	userSignal?: AbortSignal,
+): AbortSignal {
+	const timeoutSignal = AbortSignal.timeout(timeout);
+	if (!userSignal) {
+		return timeoutSignal;
+	}
+	// Combine signals - abort when either triggers
+	return AbortSignal.any([timeoutSignal, userSignal]);
+}
+
+/**
+ * Wraps fetch errors in KoineError for consistent error handling.
+ */
+async function safeFetch(
+	url: string,
+	options: RequestInit,
+	timeout: number,
+): Promise<Response> {
+	try {
+		return await fetch(url, options);
+	} catch (error) {
+		if (error instanceof DOMException && error.name === "AbortError") {
+			// Check if it was a timeout or user cancellation
+			throw new KoineError(
+				`Request aborted (timeout: ${timeout}ms)`,
+				"TIMEOUT",
+			);
+		}
+		if (error instanceof TypeError) {
+			// Network errors (DNS failure, connection refused, etc.)
+			throw new KoineError(`Network error: ${error.message}`, "NETWORK_ERROR");
+		}
+		// Unknown error - wrap it
+		throw new KoineError(
+			`Request failed: ${error instanceof Error ? error.message : String(error)}`,
+			"NETWORK_ERROR",
+		);
+	}
+}
 
 /**
  * Safely parses JSON from a response, handling non-JSON bodies gracefully.
@@ -27,6 +128,15 @@ async function safeJsonParse<T>(response: Response): Promise<T | null> {
 
 /**
  * Generates plain text response from Koine gateway service.
+ *
+ * @param config - Client configuration including baseUrl, authKey, and timeout
+ * @param options - Request options
+ * @param options.prompt - The user prompt to send
+ * @param options.system - Optional system prompt for context
+ * @param options.sessionId - Optional session ID to continue a conversation
+ * @param options.signal - Optional AbortSignal for cancellation
+ * @returns Object containing response text, usage stats, and session ID
+ * @throws {KoineError} When the request fails or returns invalid response
  */
 export async function generateText(
 	config: KoineConfig,
@@ -34,32 +144,39 @@ export async function generateText(
 		system?: string;
 		prompt: string;
 		sessionId?: string;
+		signal?: AbortSignal;
 	},
 ): Promise<{
 	text: string;
 	usage: KoineUsage;
 	sessionId: string;
 }> {
-	const response = await fetch(`${config.baseUrl}/generate-text`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${config.authKey}`,
+	validateConfig(config);
+
+	const response = await safeFetch(
+		`${config.baseUrl}/generate-text`,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${config.authKey}`,
+			},
+			body: JSON.stringify({
+				system: options.system,
+				prompt: options.prompt,
+				sessionId: options.sessionId,
+				model: config.model,
+			}),
+			signal: createAbortSignal(config.timeout, options.signal),
 		},
-		body: JSON.stringify({
-			system: options.system,
-			prompt: options.prompt,
-			sessionId: options.sessionId,
-			model: config.model,
-		}),
-		signal: AbortSignal.timeout(config.timeout),
-	});
+		config.timeout,
+	);
 
 	if (!response.ok) {
 		const errorBody = await safeJsonParse<ErrorResponse>(response);
 		throw new KoineError(
 			errorBody?.error || `HTTP ${response.status} ${response.statusText}`,
-			errorBody?.code || "HTTP_ERROR",
+			toErrorCode(errorBody?.code, "HTTP_ERROR"),
 			errorBody?.rawText,
 		);
 	}
@@ -145,7 +262,19 @@ function createSSEParser(): TransformStream<
 
 /**
  * Streams text response from Koine gateway service.
- * Returns a ReadableStream of text chunks that can be consumed as they arrive.
+ *
+ * @param config - Client configuration including baseUrl, authKey, and timeout
+ * @param options - Request options
+ * @param options.prompt - The user prompt to send
+ * @param options.system - Optional system prompt for context
+ * @param options.sessionId - Optional session ID to continue a conversation
+ * @param options.signal - Optional AbortSignal for cancellation
+ * @returns KoineStreamResult containing:
+ *   - textStream: ReadableStream of text chunks (async iterable)
+ *   - sessionId: Promise that resolves early when session event arrives
+ *   - usage: Promise that resolves when stream completes
+ *   - text: Promise containing full accumulated text
+ * @throws {KoineError} When connection fails or stream encounters an error
  */
 export async function streamText(
 	config: KoineConfig,
@@ -153,28 +282,35 @@ export async function streamText(
 		system?: string;
 		prompt: string;
 		sessionId?: string;
+		signal?: AbortSignal;
 	},
 ): Promise<KoineStreamResult> {
-	const response = await fetch(`${config.baseUrl}/stream`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${config.authKey}`,
+	validateConfig(config);
+
+	const response = await safeFetch(
+		`${config.baseUrl}/stream`,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${config.authKey}`,
+			},
+			body: JSON.stringify({
+				system: options.system,
+				prompt: options.prompt,
+				sessionId: options.sessionId,
+				model: config.model,
+			}),
+			signal: createAbortSignal(config.timeout, options.signal),
 		},
-		body: JSON.stringify({
-			system: options.system,
-			prompt: options.prompt,
-			sessionId: options.sessionId,
-			model: config.model,
-		}),
-		signal: AbortSignal.timeout(config.timeout),
-	});
+		config.timeout,
+	);
 
 	if (!response.ok) {
 		const errorBody = await safeJsonParse<ErrorResponse>(response);
 		throw new KoineError(
 			errorBody?.error || `HTTP ${response.status} ${response.statusText}`,
-			errorBody?.code || "HTTP_ERROR",
+			toErrorCode(errorBody?.code, "HTTP_ERROR"),
 			errorBody?.rawText,
 		);
 	}
@@ -211,6 +347,7 @@ export async function streamText(
 	let accumulatedText = "";
 	let sessionIdReceived = false;
 	let usageReceived = false;
+	let textResolved = false;
 
 	// Transform SSE events into text chunks
 	const textStream = response.body.pipeThrough(createSSEParser()).pipeThrough(
@@ -252,7 +389,7 @@ export async function streamText(
 							const parsed = JSON.parse(sseEvent.data) as SSEErrorEvent;
 							const error = new KoineError(
 								parsed.error,
-								parsed.code || "STREAM_ERROR",
+								toErrorCode(parsed.code, "STREAM_ERROR"),
 							);
 							usageReceived = true; // Prevent double rejection in flush
 							rejectUsage(error);
@@ -265,28 +402,45 @@ export async function streamText(
 						}
 						case "done": {
 							// Stream complete, resolve the text promise
-							resolveText(accumulatedText);
+							if (!textResolved) {
+								textResolved = true;
+								resolveText(accumulatedText);
+							}
 							break;
 						}
 					}
 				} catch (parseError) {
+					const parseErrorMessage =
+						parseError instanceof Error
+							? parseError.message
+							: String(parseError);
+
 					if (isCriticalEvent) {
 						// Critical event parse failure - propagate error
 						const error = new KoineError(
-							`Failed to parse critical SSE event: ${sseEvent.event}`,
+							`Failed to parse critical SSE event '${sseEvent.event}': ${parseErrorMessage}`,
 							"SSE_PARSE_ERROR",
+							sseEvent.data,
 						);
 						if (!usageReceived) {
 							usageReceived = true;
 							rejectUsage(error);
 						}
-						rejectText(error);
+						if (!textResolved) {
+							textResolved = true;
+							rejectText(error);
+						}
 						if (!sessionIdReceived) {
 							rejectSessionId(error);
 						}
 						controller.error(error);
+					} else {
+						// Non-critical event (text) - log warning but continue stream
+						// Degraded content is better than total failure
+						console.warn(
+							`[Koine SDK] Failed to parse SSE text event: ${parseErrorMessage}. Raw data: ${sseEvent.data?.substring(0, 100)}`,
+						);
 					}
-					// Non-critical event (text) - continue stream silently
 				}
 			},
 			flush() {
@@ -304,7 +458,9 @@ export async function streamText(
 						),
 					);
 				}
-				resolveText(accumulatedText);
+				if (!textResolved) {
+					resolveText(accumulatedText);
+				}
 			},
 		}),
 	);
@@ -319,7 +475,19 @@ export async function streamText(
 
 /**
  * Generates structured JSON response from Koine gateway service.
- * Converts Zod schema to JSON Schema for the gateway service.
+ * Converts the provided Zod schema to JSON Schema format for the gateway.
+ *
+ * @typeParam T - The type of the expected response object, inferred from schema
+ * @param config - Client configuration including baseUrl, authKey, and timeout
+ * @param options - Request options
+ * @param options.prompt - The user prompt describing what to extract
+ * @param options.schema - Zod schema defining the expected response structure
+ * @param options.system - Optional system prompt for context
+ * @param options.sessionId - Optional session ID to continue a conversation
+ * @param options.signal - Optional AbortSignal for cancellation
+ * @returns Object containing parsed and validated response, raw text, usage, and sessionId
+ * @throws {KoineError} With code 'VALIDATION_ERROR' if response doesn't match schema
+ * @throws {KoineError} With code 'HTTP_ERROR' for network/authentication failures
  */
 export async function generateObject<T>(
 	config: KoineConfig,
@@ -328,6 +496,7 @@ export async function generateObject<T>(
 		prompt: string;
 		schema: z.ZodSchema<T>;
 		sessionId?: string;
+		signal?: AbortSignal;
 	},
 ): Promise<{
 	object: T;
@@ -335,33 +504,39 @@ export async function generateObject<T>(
 	usage: KoineUsage;
 	sessionId: string;
 }> {
+	validateConfig(config);
+
 	// Convert Zod schema to JSON Schema for the gateway service
 	const jsonSchema = zodToJsonSchema(options.schema, {
 		$refStrategy: "none",
 		target: "jsonSchema7",
 	});
 
-	const response = await fetch(`${config.baseUrl}/generate-object`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-			Authorization: `Bearer ${config.authKey}`,
+	const response = await safeFetch(
+		`${config.baseUrl}/generate-object`,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${config.authKey}`,
+			},
+			body: JSON.stringify({
+				system: options.system,
+				prompt: options.prompt,
+				schema: jsonSchema,
+				sessionId: options.sessionId,
+				model: config.model,
+			}),
+			signal: createAbortSignal(config.timeout, options.signal),
 		},
-		body: JSON.stringify({
-			system: options.system,
-			prompt: options.prompt,
-			schema: jsonSchema,
-			sessionId: options.sessionId,
-			model: config.model,
-		}),
-		signal: AbortSignal.timeout(config.timeout),
-	});
+		config.timeout,
+	);
 
 	if (!response.ok) {
 		const errorBody = await safeJsonParse<ErrorResponse>(response);
 		throw new KoineError(
 			errorBody?.error || `HTTP ${response.status} ${response.statusText}`,
-			errorBody?.code || "HTTP_ERROR",
+			toErrorCode(errorBody?.code, "HTTP_ERROR"),
 			errorBody?.rawText,
 		);
 	}

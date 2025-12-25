@@ -27,6 +27,7 @@ import { generateText, KoineConfig } from '@patternzones/koine-sdk';
 const config: KoineConfig = {
   baseUrl: 'http://localhost:3100',
   authKey: 'your-api-key',
+  timeout: 300000, // 5 minutes
 };
 
 const result = await generateText(config, {
@@ -39,10 +40,11 @@ console.log(result.text);
 ## Features
 
 - **Text Generation** — `generateText()` for simple prompts
-- **Streaming** — `streamText()` with async iterators
+- **Streaming** — `streamText()` with ReadableStream (async iterable)
 - **Structured Output** — `generateObject()` with Zod schema validation
+- **Cancellation** — AbortSignal support for all requests
 - **Type Safety** — Full TypeScript types for all requests and responses
-- **Error Handling** — `KoineError` class with status codes
+- **Error Handling** — `KoineError` class with typed error codes
 
 ## API
 
@@ -59,12 +61,10 @@ console.log(result.text);
 | Type | Description |
 |------|-------------|
 | `KoineConfig` | Client configuration (baseUrl, authKey, timeout, model) |
-| `GenerateTextRequest` | Text generation request options |
-| `GenerateTextResponse` | Text generation response with usage stats |
-| `GenerateObjectRequest` | Object extraction request with Zod schema |
-| `GenerateObjectResponse` | Object extraction response |
-| `KoineStreamResult` | Streaming result with async iterators |
-| `KoineError` | Error class with status and code |
+| `KoineUsage` | Token usage stats (inputTokens, outputTokens, totalTokens) |
+| `KoineStreamResult` | Streaming result with ReadableStream and promises |
+| `KoineError` | Error class with typed `code` property |
+| `KoineErrorCode` | Union type of all possible error codes |
 
 ## Documentation
 
