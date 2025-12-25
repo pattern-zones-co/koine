@@ -16,37 +16,37 @@ export interface KoineConfig {
  * Usage information from Koine gateway service.
  */
 export interface KoineUsage {
-	inputTokens: number;
-	outputTokens: number;
-	totalTokens: number;
+	readonly inputTokens: number;
+	readonly outputTokens: number;
+	readonly totalTokens: number;
 }
 
 /**
- * Response from generate-text endpoint.
+ * Response from generate-text endpoint (internal).
  */
 export interface GenerateTextResponse {
-	text: string;
-	usage: KoineUsage;
-	sessionId: string;
+	readonly text: string;
+	readonly usage: KoineUsage;
+	readonly sessionId: string;
 }
 
 /**
- * Response from generate-object endpoint.
+ * Response from generate-object endpoint (internal).
  */
 export interface GenerateObjectResponse {
-	object: unknown;
-	rawText: string;
-	usage: KoineUsage;
-	sessionId: string;
+	readonly object: unknown;
+	readonly rawText: string;
+	readonly usage: KoineUsage;
+	readonly sessionId: string;
 }
 
 /**
- * Error response from Koine gateway service.
+ * Error response from Koine gateway service (internal).
  */
 export interface ErrorResponse {
-	error: string;
-	code: string;
-	rawText?: string;
+	readonly error: string;
+	readonly code: string;
+	readonly rawText?: string;
 }
 
 /**
@@ -54,28 +54,28 @@ export interface ErrorResponse {
  */
 export interface KoineStreamResult {
 	/** ReadableStream of text chunks as they arrive */
-	textStream: ReadableStream<string>;
+	readonly textStream: ReadableStream<string>;
 	/** Session ID for conversation continuity (resolves early in stream, after session event) */
-	sessionId: Promise<string>;
+	readonly sessionId: Promise<string>;
 	/** Usage stats (resolves when stream completes via result event) */
-	usage: Promise<KoineUsage>;
+	readonly usage: Promise<KoineUsage>;
 	/** Full accumulated text (resolves when stream completes) */
-	text: Promise<string>;
+	readonly text: Promise<string>;
 }
 
 /**
- * SSE event types from Koine gateway /stream endpoint.
+ * SSE event types from Koine gateway /stream endpoint (internal).
  */
 export interface SSETextEvent {
-	text: string;
+	readonly text: string;
 }
 
 export interface SSEResultEvent {
-	sessionId: string;
-	usage: KoineUsage;
+	readonly sessionId: string;
+	readonly usage: KoineUsage;
 }
 
 export interface SSEErrorEvent {
-	error: string;
-	code?: string;
+	readonly error: string;
+	readonly code?: string;
 }

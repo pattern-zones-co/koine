@@ -5,16 +5,16 @@
  *
  * @example
  * ```typescript
- * import { generateText, KoineConfig } from '@patternzones/koine-sdk';
+ * import { createKoine } from '@patternzones/koine-sdk';
  *
- * const config: KoineConfig = {
+ * const koine = createKoine({
  *   baseUrl: 'http://localhost:3100',
  *   timeout: 300000,
  *   authKey: 'your-api-key',
  *   model: 'sonnet',
- * };
+ * });
  *
- * const result = await generateText(config, {
+ * const result = await koine.generateText({
  *   prompt: 'Hello, how are you?',
  * });
  *
@@ -29,5 +29,16 @@ export type { KoineConfig, KoineUsage, KoineStreamResult } from "./types.js";
 export { KoineError } from "./errors.js";
 export type { KoineErrorCode } from "./errors.js";
 
-// Client functions
+// Client factory (recommended API)
+export { createKoine } from "./client.js";
+export type {
+	KoineClient,
+	GenerateTextOptions,
+	GenerateTextResult,
+	StreamTextOptions,
+	GenerateObjectOptions,
+	GenerateObjectResult,
+} from "./client.js";
+
+// Standalone functions (legacy API - still supported)
 export { generateText, streamText, generateObject } from "./client.js";

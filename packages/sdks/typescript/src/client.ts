@@ -566,3 +566,137 @@ export async function generateObject<T>(
 		sessionId: result.sessionId,
 	};
 }
+
+/**
+ * Request options for text generation.
+ */
+export interface GenerateTextOptions {
+	/** The user prompt to send */
+	prompt: string;
+	/** Optional system prompt for context */
+	system?: string;
+	/** Optional session ID to continue a conversation */
+	sessionId?: string;
+	/** Optional AbortSignal for cancellation */
+	signal?: AbortSignal;
+}
+
+/**
+ * Request options for streaming text generation.
+ */
+export interface StreamTextOptions {
+	/** The user prompt to send */
+	prompt: string;
+	/** Optional system prompt for context */
+	system?: string;
+	/** Optional session ID to continue a conversation */
+	sessionId?: string;
+	/** Optional AbortSignal for cancellation */
+	signal?: AbortSignal;
+}
+
+/**
+ * Request options for structured object generation.
+ */
+export interface GenerateObjectOptions<T> {
+	/** The user prompt describing what to extract */
+	prompt: string;
+	/** Zod schema defining the expected response structure */
+	schema: z.ZodSchema<T>;
+	/** Optional system prompt for context */
+	system?: string;
+	/** Optional session ID to continue a conversation */
+	sessionId?: string;
+	/** Optional AbortSignal for cancellation */
+	signal?: AbortSignal;
+}
+
+/**
+ * Text generation result.
+ */
+export interface GenerateTextResult {
+	readonly text: string;
+	readonly usage: KoineUsage;
+	readonly sessionId: string;
+}
+
+/**
+ * Structured object generation result.
+ */
+export interface GenerateObjectResult<T> {
+	readonly object: T;
+	readonly rawText: string;
+	readonly usage: KoineUsage;
+	readonly sessionId: string;
+}
+
+/**
+ * Koine client interface returned by createKoine.
+ */
+export interface KoineClient {
+	/**
+	 * Generates plain text response from Koine gateway service.
+	 *
+	 * @param options - Request options
+	 * @returns Object containing response text, usage stats, and session ID
+	 * @throws {KoineError} When the request fails or returns invalid response
+	 */
+	generateText(options: GenerateTextOptions): Promise<GenerateTextResult>;
+
+	/**
+	 * Streams text response from Koine gateway service.
+	 *
+	 * @param options - Request options
+	 * @returns KoineStreamResult with textStream and promises for sessionId, usage, text
+	 * @throws {KoineError} When connection fails or stream encounters an error
+	 */
+	streamText(options: StreamTextOptions): Promise<KoineStreamResult>;
+
+	/**
+	 * Generates structured JSON response from Koine gateway service.
+	 *
+	 * @typeParam T - The type of the expected response object, inferred from schema
+	 * @param options - Request options including Zod schema
+	 * @returns Object containing validated response, raw text, usage, and sessionId
+	 * @throws {KoineError} With code 'VALIDATION_ERROR' if response doesn't match schema
+	 */
+	generateObject<T>(
+		options: GenerateObjectOptions<T>,
+	): Promise<GenerateObjectResult<T>>;
+}
+
+/**
+ * Creates a Koine client instance with the given configuration.
+ *
+ * @param config - Client configuration including baseUrl, authKey, and timeout
+ * @returns KoineClient with generateText, streamText, and generateObject methods
+ * @throws {KoineError} With code 'INVALID_CONFIG' if config is invalid
+ *
+ * @example
+ * ```typescript
+ * import { createKoine } from '@patternzones/koine-sdk';
+ *
+ * const koine = createKoine({
+ *   baseUrl: 'http://localhost:3100',
+ *   authKey: 'your-api-key',
+ *   timeout: 300000,
+ * });
+ *
+ * const result = await koine.generateText({
+ *   prompt: 'Hello, how are you?',
+ * });
+ *
+ * console.log(result.text);
+ * ```
+ */
+export function createKoine(config: KoineConfig): KoineClient {
+	// Validate config once at creation time
+	validateConfig(config);
+
+	return {
+		generateText: (options) => generateText(config, options),
+		streamText: (options) => streamText(config, options),
+		generateObject: <T>(options: GenerateObjectOptions<T>) =>
+			generateObject(config, options),
+	};
+}

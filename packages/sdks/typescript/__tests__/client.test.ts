@@ -8,7 +8,12 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { generateObject, generateText, streamText } from "../src/client.js";
+import {
+	createKoine,
+	generateObject,
+	generateText,
+	streamText,
+} from "../src/client.js";
 import { KoineError } from "../src/errors.js";
 import type { KoineConfig } from "../src/types.js";
 
@@ -501,61 +506,61 @@ describe("Koine SDK Client", () => {
 		});
 	});
 
+	/**
+	 * Creates a mock SSE ReadableStream that emits events in SSE format.
+	 * Used to simulate the gateway's /stream endpoint response.
+	 */
+	function createSSEStream(
+		events: Array<{ event: string; data: unknown }>,
+	): ReadableStream<Uint8Array> {
+		const encoder = new TextEncoder();
+		let index = 0;
+
+		return new ReadableStream({
+			pull(controller) {
+				if (index < events.length) {
+					const { event, data } = events[index];
+					const sseData = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+					controller.enqueue(encoder.encode(sseData));
+					index++;
+				} else {
+					controller.close();
+				}
+			},
+		});
+	}
+
+	/**
+	 * Creates a mock Response with an SSE stream body.
+	 */
+	function createMockSSEResponse(
+		events: Array<{ event: string; data: unknown }>,
+		options: { status?: number; ok?: boolean } = {},
+	): Response {
+		const { status = 200, ok = true } = options;
+		const body = createSSEStream(events);
+
+		return {
+			ok,
+			status,
+			statusText: ok ? "OK" : "Error",
+			headers: new Headers({ "Content-Type": "text/event-stream" }),
+			body,
+			text: vi.fn(),
+			json: vi.fn(),
+			redirected: false,
+			type: "basic",
+			url: "",
+			clone: vi.fn(),
+			bodyUsed: false,
+			arrayBuffer: vi.fn(),
+			blob: vi.fn(),
+			formData: vi.fn(),
+			bytes: vi.fn(),
+		} as unknown as Response;
+	}
+
 	describe("streamText", () => {
-		/**
-		 * Creates a mock SSE ReadableStream that emits events in SSE format.
-		 * Used to simulate the gateway's /stream endpoint response.
-		 */
-		function createSSEStream(
-			events: Array<{ event: string; data: unknown }>,
-		): ReadableStream<Uint8Array> {
-			const encoder = new TextEncoder();
-			let index = 0;
-
-			return new ReadableStream({
-				pull(controller) {
-					if (index < events.length) {
-						const { event, data } = events[index];
-						const sseData = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-						controller.enqueue(encoder.encode(sseData));
-						index++;
-					} else {
-						controller.close();
-					}
-				},
-			});
-		}
-
-		/**
-		 * Creates a mock Response with an SSE stream body.
-		 */
-		function createMockSSEResponse(
-			events: Array<{ event: string; data: unknown }>,
-			options: { status?: number; ok?: boolean } = {},
-		): Response {
-			const { status = 200, ok = true } = options;
-			const body = createSSEStream(events);
-
-			return {
-				ok,
-				status,
-				statusText: ok ? "OK" : "Error",
-				headers: new Headers({ "Content-Type": "text/event-stream" }),
-				body,
-				text: vi.fn(),
-				json: vi.fn(),
-				redirected: false,
-				type: "basic",
-				url: "",
-				clone: vi.fn(),
-				bodyUsed: false,
-				arrayBuffer: vi.fn(),
-				blob: vi.fn(),
-				formData: vi.fn(),
-				bytes: vi.fn(),
-			} as unknown as Response;
-		}
-
 		it("should make POST request to /stream endpoint", async () => {
 			const events = [
 				{ event: "session", data: { sessionId: "stream-session-123" } },
@@ -935,6 +940,102 @@ describe("Koine SDK Client", () => {
 
 			const text = await result.text;
 			expect(text).toBe("Content");
+		});
+	});
+
+	describe("createKoine", () => {
+		it("should create a client with generateText method", async () => {
+			const mockResponse = createMockResponse({
+				text: "Hello from factory!",
+				usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+				sessionId: "factory-session",
+			});
+
+			global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+			const koine = createKoine(testConfig);
+			const result = await koine.generateText({ prompt: "test" });
+
+			expect(result.text).toBe("Hello from factory!");
+			expect(result.sessionId).toBe("factory-session");
+		});
+
+		it("should create a client with streamText method", async () => {
+			const events = [
+				{ event: "session", data: { sessionId: "stream-session" } },
+				{ event: "text", data: { text: "Streamed!" } },
+				{
+					event: "result",
+					data: {
+						sessionId: "stream-session",
+						usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+					},
+				},
+				{ event: "done", data: { code: 0 } },
+			];
+
+			global.fetch = vi.fn().mockResolvedValue(createMockSSEResponse(events));
+
+			const koine = createKoine(testConfig);
+			const result = await koine.streamText({ prompt: "test" });
+
+			// Consume the stream first
+			const reader = result.textStream.getReader();
+			while (true) {
+				const { done } = await reader.read();
+				if (done) break;
+			}
+
+			const text = await result.text;
+			expect(text).toBe("Streamed!");
+		});
+
+		it("should create a client with generateObject method", async () => {
+			const schema = z.object({ name: z.string() });
+			const mockResponse = createMockResponse({
+				object: { name: "Factory Test" },
+				rawText: '{"name":"Factory Test"}',
+				usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+				sessionId: "object-session",
+			});
+
+			global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+			const koine = createKoine(testConfig);
+			const result = await koine.generateObject({ prompt: "test", schema });
+
+			expect(result.object.name).toBe("Factory Test");
+		});
+
+		it("should validate config at creation time", () => {
+			expect(() => createKoine({ ...testConfig, baseUrl: "" })).toThrow(
+				KoineError,
+			);
+			expect(() => createKoine({ ...testConfig, authKey: "" })).toThrow(
+				KoineError,
+			);
+			expect(() => createKoine({ ...testConfig, timeout: -1 })).toThrow(
+				KoineError,
+			);
+		});
+
+		it("should not validate config again on method calls", async () => {
+			const mockResponse = createMockResponse({
+				text: "test",
+				usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+				sessionId: "s",
+			});
+
+			global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+			const koine = createKoine(testConfig);
+
+			// Config is validated at creation, not on each call
+			// So even if we could mutate config (we can't due to closure),
+			// the validation already passed
+			await expect(
+				koine.generateText({ prompt: "test" }),
+			).resolves.toBeDefined();
 		});
 	});
 });

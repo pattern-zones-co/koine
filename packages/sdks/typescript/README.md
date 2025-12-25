@@ -22,15 +22,15 @@ npm install @patternzones/koine-sdk
 ## Quick Start
 
 ```typescript
-import { generateText, KoineConfig } from '@patternzones/koine-sdk';
+import { createKoine } from '@patternzones/koine-sdk';
 
-const config: KoineConfig = {
+const koine = createKoine({
   baseUrl: 'http://localhost:3100',
   authKey: 'your-api-key',
   timeout: 300000, // 5 minutes
-};
+});
 
-const result = await generateText(config, {
+const result = await koine.generateText({
   prompt: 'Hello, how are you?',
 });
 
@@ -48,19 +48,28 @@ console.log(result.text);
 
 ## API
 
-### Functions
+### Client Factory
 
-| Function | Description |
-|----------|-------------|
-| `generateText(config, request)` | Generate text from a prompt |
-| `streamText(config, request)` | Stream text via Server-Sent Events |
-| `generateObject(config, request)` | Extract structured data using a Zod schema |
+```typescript
+const koine = createKoine(config);
+```
+
+Creates a client instance with the given configuration. The config is validated once at creation time.
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `koine.generateText(options)` | Generate text from a prompt |
+| `koine.streamText(options)` | Stream text via Server-Sent Events |
+| `koine.generateObject(options)` | Extract structured data using a Zod schema |
 
 ### Types
 
 | Type | Description |
 |------|-------------|
 | `KoineConfig` | Client configuration (baseUrl, authKey, timeout, model) |
+| `KoineClient` | Client interface returned by `createKoine()` |
 | `KoineUsage` | Token usage stats (inputTokens, outputTokens, totalTokens) |
 | `KoineStreamResult` | Streaming result with ReadableStream and promises |
 | `KoineError` | Error class with typed `code` property |
