@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.2](https://github.com/pattern-zones-co/koine/compare/v2.0.1...v2.0.2) (2025-12-25)
+
+
+### Bug Fixes
+
+* **sdk:** correct license expression to AGPL-3.0 + Commercial dual license ([a5dc0be](https://github.com/pattern-zones-co/koine/commit/a5dc0be9f5e8842fe35818182f08fbbefe009319))
+
+
+### Documentation
+
+* rewrite README for better developer uptake ([886e276](https://github.com/pattern-zones-co/koine/commit/886e27638cf207bd42c37ad75541f219d54cee80))
+
 ## [2.0.1](https://github.com/pattern-zones-co/koine/compare/v2.0.0...v2.0.1) (2025-12-25)
 
 
