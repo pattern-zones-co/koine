@@ -326,6 +326,12 @@ class TestStreamText:
         assert exc_info.value.code == "RATE_LIMIT"
         assert "Rate limit exceeded" in str(exc_info.value)
 
+        # Consume the futures to avoid "Future exception was never retrieved" warning
+        with pytest.raises(KoineError):
+            await result.usage()
+        with pytest.raises(KoineError):
+            await result.text()
+
     async def test_http_error(self, httpx_mock: HTTPXMock, config: KoineConfig):
         httpx_mock.add_response(
             url="http://localhost:3100/stream",
