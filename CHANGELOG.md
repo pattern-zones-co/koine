@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.5](https://github.com/pattern-zones-co/koine/compare/v1.1.4...v1.1.5) (2025-12-25)
+
+
+### Documentation
+
+* add SDK examples for TypeScript client ([#32](https://github.com/pattern-zones-co/koine/issues/32)) ([6aa7bcb](https://github.com/pattern-zones-co/koine/commit/6aa7bcbb802d348ccb157bebc3ac9fb5d6edaa56))
+
 ## [1.1.4](https://github.com/pattern-zones-co/koine/compare/v1.1.3...v1.1.4) (2025-12-25)
 
 
