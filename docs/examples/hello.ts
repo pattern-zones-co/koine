@@ -7,7 +7,11 @@
  *   bun run docs/examples/hello.ts
  */
 
-import { type KoineConfig, generateText } from "@patternzones/koine-sdk";
+import {
+	type KoineConfig,
+	KoineError,
+	generateText,
+} from "@patternzones/koine-sdk";
 
 // Bun automatically loads .env from current working directory
 const authKey = process.env.CLAUDE_CODE_GATEWAY_API_KEY;
@@ -35,4 +39,19 @@ async function main() {
 	console.log(`Session ID: ${result.sessionId}`);
 }
 
-main().catch(console.error);
+main().catch((error) => {
+	if (error instanceof KoineError) {
+		console.error(`\nKoine Error [${error.code}]: ${error.message}`);
+		if (error.code === "HTTP_ERROR" && error.message.includes("401")) {
+			console.error("  → Check that CLAUDE_CODE_GATEWAY_API_KEY is correct");
+		}
+	} else if (error?.cause?.code === "ECONNREFUSED") {
+		console.error("\nConnection refused. Is the gateway running?");
+		console.error(
+			"  → Start it with: docker run -d --env-file .env -p 3100:3100 ghcr.io/pattern-zones-co/koine:latest",
+		);
+	} else {
+		console.error("\nUnexpected error:", error);
+	}
+	process.exit(1);
+});

@@ -27,7 +27,7 @@ bun run docs/examples/hello.ts
 bun run docs/examples/extract-recipe.ts
 
 # Real-time streaming
-bun run docs/examples/stream-haiku.ts
+bun run docs/examples/stream.ts
 ```
 
 ## Examples
@@ -38,5 +38,5 @@ Basic `generateText` usage. Asks a simple question and displays the response wit
 ### extract-recipe.ts
 Uses `generateObject` with a Zod schema to extract structured recipe data from natural language. Demonstrates type-safe output validation.
 
-### stream-haiku.ts
-Uses `streamText` to show real-time streaming. Text appears character-by-character as the model generates it.
+### stream.ts
+Uses `streamText` to show real-time streaming. Text appears as the model generates it, with a chunk counter to demonstrate streaming is working.
