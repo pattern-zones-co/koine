@@ -40,6 +40,19 @@ Koine turns Claude Code into a programmable inference layer. Use it to:
 - **Run on internal networks** — VPN or Docker networks are ideal for service-to-service communication
 - **Authenticate all requests** — the gateway requires an API key separate from Claude authentication
 
+## Quick Start
+
+```bash
+docker run -d -p 3100:3100 \
+  -e CLAUDE_CODE_GATEWAY_API_KEY=your-key \
+  -e CLAUDE_CODE_OAUTH_TOKEN=your-token \
+  ghcr.io/pattern-zones-co/koine:latest
+
+curl http://localhost:3100/health
+```
+
+See [Docker Deployment](docs/docker-deployment.md) for version pinning, docker-compose setup, and production configuration.
+
 ## Documentation
 
 | Guide | Description |
@@ -61,7 +74,7 @@ Koine turns Claude Code into a programmable inference layer. Use it to:
 
 ## License
 
-See [LICENSE](LICENSE) for details (AGPL-3.0).
+Dual-licensed under AGPL-3.0 or commercial license. See [LICENSE](LICENSE) for details.
 
 ## Contributing
 

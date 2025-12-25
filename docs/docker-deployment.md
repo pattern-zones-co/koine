@@ -32,7 +32,7 @@ Available version formats:
 - `1` - Latest minor/patch of major version
 - `latest` - Most recent release (default)
 
-## Local Development
+## Building from Source
 
 Build from source using the dev profile:
 
@@ -40,7 +40,7 @@ Build from source using the dev profile:
 docker compose --profile dev up --build
 ```
 
-This uses `koine-dev` service which builds locally from the Dockerfile.
+This uses the `koine-dev` service which builds locally from the Dockerfile. See [CONTRIBUTING.md](../CONTRIBUTING.md) for development setup.
 
 ## Configuration
 

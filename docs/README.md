@@ -12,19 +12,28 @@
 ## Getting Started
 
 ```bash
+docker run -d -p 3100:3100 \
+  -e CLAUDE_CODE_GATEWAY_API_KEY=your-key \
+  -e CLAUDE_CODE_OAUTH_TOKEN=your-token \
+  ghcr.io/pattern-zones-co/koine:latest
+
+curl http://localhost:3100/health
+```
+
+See [Docker Deployment](docker-deployment.md) for docker-compose setup, version pinning, and production configuration.
+
+### From Source
+
+Alternatively, clone and build from source:
+
+```bash
 git clone https://github.com/pattern-zones-co/koine.git
 cd koine
 
 cp .env.example .env
 # Edit .env with your keys
 
-docker compose up -d koine
-```
-
-Verify it's running:
-
-```bash
-curl http://localhost:3100/health
+docker compose up -d
 ```
 
 ### Usage
