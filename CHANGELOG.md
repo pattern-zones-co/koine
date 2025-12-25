@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/pattern-zones-co/koine/compare/v1.1.2...v1.1.3) (2025-12-25)
+
+
+### Bug Fixes
+
+* **ci:** skip lint in release ci-checks job ([5d0bf71](https://github.com/pattern-zones-co/koine/commit/5d0bf71b588b7628c227d1fe461cbffd865831ef))
+
 ## [1.1.2](https://github.com/pattern-zones-co/koine/compare/v1.1.1...v1.1.2) (2025-12-25)
 
 
