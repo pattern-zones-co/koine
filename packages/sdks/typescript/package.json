@@ -1,6 +1,6 @@
 {
 	"name": "@patternzones/koine-sdk",
-	"version": "1.1.5",
+	"version": "1.1.6",
 	"description": "TypeScript SDK for Koine gateway",
 	"repository": {
 		"type": "git",
