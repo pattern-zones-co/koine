@@ -1,8 +1,8 @@
 /**
  * stream.ts - streamText example with real-time output
  *
- * Demonstrates streaming responses, showing text as it arrives.
- * Displays chunk count to prove streaming is working.
+ * Demonstrates streaming responses with typewriter effect.
+ * Text appears progressively as tokens arrive from the API.
  *
  * Run from project root:
  *   bun run docs/examples/typescript/stream.ts
@@ -27,33 +27,25 @@ const config: KoineConfig = {
 };
 
 async function main() {
-	console.log("Streaming response (dots show chunks arriving):\n");
+	console.log("Streaming response:\n");
 
 	const result = await streamText(config, {
 		prompt:
 			"Write a limerick about a programmer who loves coffee. Just the limerick, no explanation.",
 	});
 
-	// Stream chunks as they arrive
-	// Each dot on the progress line represents one chunk received
+	// Display text in real-time as chunks arrive
 	let chunkCount = 0;
-	const chunks: string[] = [];
 
 	for await (const chunk of result.textStream) {
-		chunks.push(chunk);
+		process.stdout.write(chunk); // Print immediately (no newline)
 		chunkCount++;
-		// Print a dot to stderr to show progress without breaking the output
-		process.stderr.write("●");
 	}
-
-	// Print the accumulated text
-	console.log("\n");
-	console.log(chunks.join(""));
 
 	// Wait for final stats
 	const usage = await result.usage;
 	console.log(
-		`\n--- Streamed in ${chunkCount} chunk${chunkCount === 1 ? "" : "s"} ---`,
+		`\n\n--- Streamed in ${chunkCount} chunk${chunkCount === 1 ? "" : "s"} ---`,
 	);
 	console.log(
 		`Usage: ${usage.totalTokens} tokens (input: ${usage.inputTokens}, output: ${usage.outputTokens})`,
