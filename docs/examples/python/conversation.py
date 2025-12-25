@@ -4,15 +4,19 @@ conversation.py - Multi-turn conversation with session persistence
 Demonstrates how to maintain context across multiple requests using session_id.
 The model remembers information from previous turns in the conversation.
 
-Run from project root:
-    uv run docs/examples/python/conversation.py
+Run from packages/sdks/python:
+    uv run python ../../../docs/examples/python/conversation.py
 """
 
 import asyncio
 import os
 import sys
 
+from dotenv import find_dotenv, load_dotenv
+
 from koine_sdk import KoineConfig, KoineError, generate_text
+
+load_dotenv(find_dotenv())
 
 
 async def main() -> None:

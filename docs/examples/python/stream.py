@@ -4,15 +4,19 @@ stream.py - stream_text example with real-time output
 Demonstrates streaming responses with typewriter effect.
 Text appears progressively as tokens arrive from the API.
 
-Run from project root:
-    uv run docs/examples/python/stream.py
+Run from packages/sdks/python:
+    uv run python ../../../docs/examples/python/stream.py
 """
 
 import asyncio
 import os
 import sys
 
+from dotenv import find_dotenv, load_dotenv
+
 from koine_sdk import KoineConfig, KoineError, stream_text
+
+load_dotenv(find_dotenv())
 
 
 async def main() -> None:

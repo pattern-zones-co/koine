@@ -3,15 +3,19 @@ hello.py - Basic generate_text example
 
 Demonstrates the simplest use case: asking a question and getting a text response.
 
-Run from project root:
-    uv run docs/examples/python/hello.py
+Run from packages/sdks/python:
+    uv run python ../../../docs/examples/python/hello.py
 """
 
 import asyncio
 import os
 import sys
 
+from dotenv import find_dotenv, load_dotenv
+
 from koine_sdk import KoineConfig, KoineError, generate_text
+
+load_dotenv(find_dotenv())
 
 
 async def main() -> None:

@@ -3,8 +3,8 @@ extract_recipe.py - generate_object example with Pydantic schema
 
 Demonstrates structured data extraction using Pydantic models for type-safe output.
 
-Run from project root:
-    uv run docs/examples/python/extract_recipe.py
+Run from packages/sdks/python:
+    uv run python ../../../docs/examples/python/extract_recipe.py
 """
 
 import asyncio
@@ -12,9 +12,12 @@ import json
 import os
 import sys
 
+from dotenv import find_dotenv, load_dotenv
 from pydantic import BaseModel, Field
 
 from koine_sdk import KoineConfig, KoineError, generate_object
+
+load_dotenv(find_dotenv())
 
 
 class Recipe(BaseModel):
