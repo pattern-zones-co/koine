@@ -44,6 +44,11 @@ def _parse_error_response(response: httpx.Response) -> KoineError:
         )
 
 
+def _build_request_body(**kwargs: Any) -> dict[str, Any]:
+    """Build request body, omitting None values."""
+    return {k: v for k, v in kwargs.items() if v is not None}
+
+
 async def generate_text(
     config: KoineConfig,
     *,
@@ -72,12 +77,12 @@ async def generate_text(
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {config.auth_key}",
             },
-            json={
-                "system": system,
-                "prompt": prompt,
-                "sessionId": session_id,
-                "model": config.model,
-            },
+            json=_build_request_body(
+                system=system,
+                prompt=prompt,
+                sessionId=session_id,
+                model=config.model,
+            ),
         )
 
         if not response.is_success:
@@ -135,13 +140,13 @@ async def generate_object(
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {config.auth_key}",
             },
-            json={
-                "system": system,
-                "prompt": prompt,
-                "schema": json_schema,
-                "sessionId": session_id,
-                "model": config.model,
-            },
+            json=_build_request_body(
+                system=system,
+                prompt=prompt,
+                schema=json_schema,
+                sessionId=session_id,
+                model=config.model,
+            ),
         )
 
         if not response.is_success:
@@ -346,12 +351,12 @@ async def stream_text(
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {config.auth_key}",
             },
-            json={
-                "system": system,
-                "prompt": prompt,
-                "sessionId": session_id,
-                "model": config.model,
-            },
+            json=_build_request_body(
+                system=system,
+                prompt=prompt,
+                sessionId=session_id,
+                model=config.model,
+            ),
         ),
         stream=True,
     )

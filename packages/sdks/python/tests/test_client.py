@@ -47,7 +47,7 @@ class TestGenerateText:
             url="http://localhost:3100/generate-text",
             json={
                 "text": "Hello, world!",
-                "usage": {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15},
+                "usage": {"inputTokens": 10, "outputTokens": 5, "totalTokens": 15},
                 "sessionId": "session-123",
             },
         )
@@ -65,7 +65,7 @@ class TestGenerateText:
             url="http://localhost:3100/generate-text",
             json={
                 "text": "Bonjour!",
-                "usage": {"input_tokens": 15, "output_tokens": 3, "total_tokens": 18},
+                "usage": {"inputTokens": 15, "outputTokens": 3, "totalTokens": 18},
                 "sessionId": "session-456",
             },
         )
@@ -134,7 +134,7 @@ class TestGenerateObject:
             json={
                 "object": {"name": "Alice", "age": 30},
                 "rawText": '{"name": "Alice", "age": 30}',
-                "usage": {"input_tokens": 20, "output_tokens": 10, "total_tokens": 30},
+                "usage": {"inputTokens": 20, "outputTokens": 10, "totalTokens": 30},
                 "sessionId": "session-789",
             },
         )
@@ -160,7 +160,7 @@ class TestGenerateObject:
             json={
                 "object": {"name": "Bob", "age": 25},
                 "rawText": "{}",
-                "usage": {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2},
+                "usage": {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2},
                 "sessionId": "s",
             },
         )
@@ -182,7 +182,7 @@ class TestGenerateObject:
             json={
                 "object": {"name": "Alice"},  # Missing required field 'age'
                 "rawText": '{"name": "Alice"}',
-                "usage": {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2},
+                "usage": {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2},
                 "sessionId": "s",
             },
         )
@@ -211,7 +211,7 @@ class TestGenerateObject:
             json={
                 "object": {"name": "Carol", "age": 35},
                 "rawText": "{}",
-                "usage": {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2},
+                "usage": {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2},
                 "sessionId": "continued-session",
             },
         )
@@ -240,7 +240,7 @@ class TestStreamText:
         return "\n".join(lines)
 
     async def test_basic_stream(self, httpx_mock: HTTPXMock, config: KoineConfig):
-        usage = {"input_tokens": 5, "output_tokens": 3, "total_tokens": 8}
+        usage = {"inputTokens": 5, "outputTokens": 3, "totalTokens": 8}
         sse_data = self._sse_response(
             [
                 ("session", {"sessionId": "stream-session"}),
@@ -272,7 +272,7 @@ class TestStreamText:
         assert usage.output_tokens == 3
 
     async def test_session_id_early(self, httpx_mock: HTTPXMock, config: KoineConfig):
-        usage = {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2}
+        usage = {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2}
         sse_data = self._sse_response(
             [
                 ("session", {"sessionId": "early-session"}),
@@ -370,7 +370,7 @@ class TestStreamText:
     async def test_request_includes_params(
         self, httpx_mock: HTTPXMock, config: KoineConfig
     ):
-        usage = {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2}
+        usage = {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2}
         sse_data = self._sse_response(
             [
                 ("session", {"sessionId": "s"}),
@@ -404,7 +404,7 @@ class TestStreamText:
         assert body["model"] == "sonnet"
 
     async def test_auth_header(self, httpx_mock: HTTPXMock, config: KoineConfig):
-        usage = {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2}
+        usage = {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2}
         sse_data = self._sse_response(
             [
                 ("session", {"sessionId": "s"}),

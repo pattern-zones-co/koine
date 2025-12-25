@@ -5,7 +5,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     pass  # For forward references
@@ -33,9 +33,9 @@ class KoineConfig:
 class KoineUsage(BaseModel):
     """Usage information from Koine gateway service."""
 
-    input_tokens: int
-    output_tokens: int
-    total_tokens: int
+    input_tokens: int = Field(alias="inputTokens")
+    output_tokens: int = Field(alias="outputTokens")
+    total_tokens: int = Field(alias="totalTokens")
 
 
 class GenerateTextResult(BaseModel):
