@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.0.0](https://github.com/pattern-zones-co/koine/compare/v1.1.6...v2.0.0) (2025-12-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sdk:** Remove standalone functions in favor of factory pattern.
+* stream_text now returns a context manager instead of a coroutine. Must use `async with stream_text(...)` instead of `await stream_text(...)`.
+
+### Features
+
+* **ci:** add automated PyPI publishing for Python SDK ([#52](https://github.com/pattern-zones-co/koine/issues/52)) ([dbe045c](https://github.com/pattern-zones-co/koine/commit/dbe045cb330663d0571f89f1ab66c1a8e5e92a9d))
+* Python SDK for Koine gateway ([#42](https://github.com/pattern-zones-co/koine/issues/42)) ([65ef9b7](https://github.com/pattern-zones-co/koine/commit/65ef9b7b2e6af2f89bc94ca18d46a6424d0dcec2))
+
+
+### Bug Fixes
+
+* **ci:** improve issue triage workflow and disable PR review ([#44](https://github.com/pattern-zones-co/koine/issues/44)) ([be4f1e2](https://github.com/pattern-zones-co/koine/commit/be4f1e2fad7277e10caca1fc0a9bcaff4d54fd67))
+* **sdk:** address TypeScript SDK review findings ([#48](https://github.com/pattern-zones-co/koine/issues/48)) ([a5da0f3](https://github.com/pattern-zones-co/koine/commit/a5da0f3f295d6f47927cdc0a4a4aad152e3e80c4))
+
+
+### Code Refactoring
+
+* move SDK examples into package directories ([#46](https://github.com/pattern-zones-co/koine/issues/46)) ([6f1a098](https://github.com/pattern-zones-co/koine/commit/6f1a098761bdceeb7e16ab5c419d4e5f712a3a91)), closes [#40](https://github.com/pattern-zones-co/koine/issues/40)
+* **sdk:** Python SDK modular architecture with factory pattern ([#50](https://github.com/pattern-zones-co/koine/issues/50)) ([6ae0ddf](https://github.com/pattern-zones-co/koine/commit/6ae0ddfafa8e5c6b187982281525af8d998a4947))
+
 ## [1.1.6](https://github.com/pattern-zones-co/koine/compare/v1.1.5...v1.1.6) (2025-12-25)
 
 
