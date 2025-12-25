@@ -1,6 +1,6 @@
 {
 	"name": "koine",
-	"version": "1.1.5",
+	"version": "1.1.6",
 	"private": true,
 	"type": "module",
 	"description": "Koine - HTTP gateway and SDK for Claude Code CLI",

@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.6](https://github.com/pattern-zones-co/koine/compare/v1.1.5...v1.1.6) (2025-12-25)
+
+
+### Bug Fixes
+
+* **ci:** pin biome version to match project dependency ([e6a7bbe](https://github.com/pattern-zones-co/koine/commit/e6a7bbefe8ebe4f41fe5faf11a3eec7503e94fb9))
+* **ci:** use bunx to run biome without full dependency install ([ae022d8](https://github.com/pattern-zones-co/koine/commit/ae022d86cdbebb7f80343ad5219cf44bf061ab61))
+* **ci:** use fromJson to extract PR branch from release-please output ([b1eda71](https://github.com/pattern-zones-co/koine/commit/b1eda71eadd68bd08fb998010ce22618c1557646))
+* **docker:** consolidate dev service into single build+image service ([#35](https://github.com/pattern-zones-co/koine/issues/35)) ([84d7f60](https://github.com/pattern-zones-co/koine/commit/84d7f60b5c199b458bf035e320ce1ae58724fc3f))
+* **gateway:** enable progressive SSE streaming ([#34](https://github.com/pattern-zones-co/koine/issues/34)) ([dc4c570](https://github.com/pattern-zones-co/koine/commit/dc4c570e4b1e9de154142fcf74ec4fffd5197998))
+
 ## [1.1.5](https://github.com/pattern-zones-co/koine/compare/v1.1.4...v1.1.5) (2025-12-25)
 
 
