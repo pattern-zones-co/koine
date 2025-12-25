@@ -4,6 +4,7 @@
 |-------|-------------|
 | [API Reference](api-reference.md) | REST endpoints |
 | [SDK Guide](sdk-guide.md) | TypeScript SDK |
+| [Examples](examples/) | Runnable SDK examples |
 | [Docker Deployment](docker-deployment.md) | Production deployment |
 | [Skills & Commands](skills-and-commands.md) | Extending Claude Code |
 | [Environment Variables](environment-variables.md) | Configuration |
