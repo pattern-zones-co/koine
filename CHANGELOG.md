@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/pattern-zones-co/koine/compare/v1.1.0...v1.1.1) (2025-12-25)
+
+
+### Bug Fixes
+
+* **ci:** use push tag trigger for Docker workflow ([e35e029](https://github.com/pattern-zones-co/koine/commit/e35e029d28fd418b1414403d36d649c27bd3e89e))
+
 ## [1.1.0](https://github.com/pattern-zones-co/koine/compare/v1.0.0...v1.1.0) (2025-12-24)
 
 
