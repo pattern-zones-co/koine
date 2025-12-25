@@ -27,26 +27,18 @@ jobs:
             REPO: ${{ github.repository }}
             ISSUE_NUMBER: ${{ github.event.issue.number }}
 
-            Available labels to apply:
-            - bug: Something isn't working
-            - enhancement: New feature or request
-            - documentation: Improvements or additions to documentation
-            - question: Further information is requested
-            - good first issue: Good for newcomers
-            - help wanted: Extra attention is needed
-            - priority:high: High priority
-            - priority:medium: Medium priority
-            - priority:low: Low priority
-
             Steps:
-            1. Use `gh issue view ${{ github.event.issue.number }} --json title,body,labels,comments` to read the issue
-            2. Analyze the issue title and body to determine:
+            1. First, get the list of available labels by running:
+               `gh label list --json name,description`
+            2. Use `gh issue view ${{ github.event.issue.number }} --json title,body,labels,comments` to read the issue
+            3. Analyze the issue title and body to determine:
                - Type of issue (bug, enhancement, documentation, question)
                - Priority level based on impact and urgency
                - Whether it's suitable for new contributors
-            3. Apply appropriate labels using `gh issue edit ${{ github.event.issue.number }} --add-label "label1,label2"`
-            4. If the issue is unclear or missing information, leave a polite comment asking for clarification
+            4. Apply appropriate labels (only use labels that exist in the repository) using:
+               `gh issue edit ${{ github.event.issue.number }} --add-label "label1,label2"`
+            5. If the issue is unclear or missing information, apply the "needs:clarification" label (do NOT leave a comment)
 
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          claude_args: '--allowedTools "Bash(gh issue:*)"'
+          claude_args: '--allowedTools "Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh label list:*)"'

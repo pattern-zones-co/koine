@@ -12,6 +12,7 @@ on:
 
 jobs:
   claude-review:
+    if: false  # Disabled pending claude-code-action PR #761 merge (local plugin support)
     # Optional: Filter by PR author
     # if: |
     #   github.event.pull_request.user.login == 'external-contributor' ||
