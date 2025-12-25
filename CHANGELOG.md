@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4](https://github.com/pattern-zones-co/koine/compare/v1.1.3...v1.1.4) (2025-12-25)
+
+
+### Documentation
+
+* update for Docker-first deployment and dual license ([#28](https://github.com/pattern-zones-co/koine/issues/28)) ([b4a18bd](https://github.com/pattern-zones-co/koine/commit/b4a18bd64e2522a8862405311b3d2da61f8ca2b3))
+
 ## [1.1.3](https://github.com/pattern-zones-co/koine/compare/v1.1.2...v1.1.3) (2025-12-25)
 
 
