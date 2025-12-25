@@ -67,13 +67,13 @@ class StreamTextResult:
     text_stream: AsyncIterator[str]
     """Async iterator of text chunks as they arrive"""
 
-    session_id_future: asyncio.Future[str]
+    _session_id_future: asyncio.Future[str]
     """Future that resolves with session ID (early in stream)"""
 
-    usage_future: asyncio.Future[KoineUsage]
+    _usage_future: asyncio.Future[KoineUsage]
     """Future that resolves with usage stats (when stream completes)"""
 
-    text_future: asyncio.Future[str]
+    _text_future: asyncio.Future[str]
     """Future that resolves with full text (when stream completes)"""
 
     async def session_id(self) -> str:
@@ -81,15 +81,15 @@ class StreamTextResult:
 
         Resolves early in stream, after session event.
         """
-        return await self.session_id_future
+        return await self._session_id_future
 
     async def usage(self) -> KoineUsage:
         """Usage stats. Resolves when stream completes."""
-        return await self.usage_future
+        return await self._usage_future
 
     async def text(self) -> str:
         """Full accumulated text. Resolves when stream completes."""
-        return await self.text_future
+        return await self._text_future
 
 
 # Internal response types for parsing gateway responses

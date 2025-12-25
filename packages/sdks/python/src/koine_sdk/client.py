@@ -385,7 +385,7 @@ async def stream_text(
 
     return StreamTextResult(
         text_stream=text_stream_generator(),
-        session_id_future=session_id_future,
-        usage_future=usage_future,
-        text_future=text_future,
+        _session_id_future=session_id_future,
+        _usage_future=usage_future,
+        _text_future=text_future,
     )
