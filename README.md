@@ -10,7 +10,7 @@ HTTP gateway + SDKs that expose [Claude Code CLI](https://github.com/anthropics/
 
 ## Why Koine?
 
-Claude Code is Anthropic's agentic coding assistant — it reads files, runs commands, edits code, and uses tools autonomously. But it's a CLI, not an API.
+Claude Code is Anthropic's agentic coding assistant. It reads files, runs commands, edits code, and uses tools autonomously. But it's a CLI, not an API.
 
 **Koine makes Claude Code callable from your applications.** Deploy it as a Docker service, call it from any language, get structured typed responses.
 
@@ -20,11 +20,11 @@ With a typical LLM SDK, you get text in → text out. Tool use, file access, and
 
 Claude Code is that orchestration layer:
 
-- **Agentic loop built-in** — tool calls handled automatically, no orchestration code
-- **File system and bash access** — read, write, edit files and run commands
-- **Skills and commands** — extend with domain knowledge and custom workflows
-- **MCP support** — connect to external tools via Model Context Protocol
-- **Battle-tested** — Anthropic's own agentic runtime, refined in production
+- **Agentic loop built-in**: tool calls handled automatically, no orchestration code
+- **File system and bash access**: read, write, edit files and run commands
+- **Skills and commands**: extend with domain knowledge and custom workflows
+- **MCP support**: connect to external tools via Model Context Protocol
+- **Battle-tested**: Anthropic's own agentic runtime, refined in production
 
 ### Why Koine Instead of Claude Code Directly?
 
@@ -63,16 +63,16 @@ See [Docker Deployment](docs/docker-deployment.md) for docker-compose, version p
 
 ## Built for Integrations
 
-- **Interactive API docs** — Scalar-powered docs at `/docs`
-- **OpenAPI spec** — generate clients for any language
-- **Runnable examples** — copy-paste and go
-- **Text generation** — simple prompts to full responses
-- **Streaming** — real-time Server-Sent Events
-- **Structured output** — type-safe extraction with Zod/Pydantic schemas
-- **Session management** — multi-turn conversations with context persistence
-- **TypeScript & Python SDKs** — full type safety and async support
-- **Extensible** — add custom [skills and slash commands](docs/skills-and-commands.md)
-- **Docker-first** — containerized deployment with security isolation
+- **Interactive API docs**: Scalar-powered docs at `/docs`
+- **OpenAPI spec**: generate clients for any language
+- **Runnable examples**: copy-paste and go
+- **Text generation**: simple prompts to full responses
+- **Streaming**: real-time Server-Sent Events
+- **Structured output**: type-safe extraction with Zod/Pydantic schemas
+- **Session management**: multi-turn conversations with context persistence
+- **TypeScript & Python SDKs**: full type safety and async support
+- **Extensible**: add custom [skills and slash commands](docs/skills-and-commands.md)
+- **Docker-first**: containerized deployment with security isolation
 
 ## SDK Usage
 
@@ -99,11 +99,11 @@ console.log(result.text);
 >
 > Claude Code has full access to its environment — filesystem, shell, and network. Koine exposes this power to your applications.
 >
-> - **Use Docker** — containers provide essential filesystem and process isolation
-> - **Internal networks only** — deploy on VPN or Docker networks, not public internet
+> - **Use Docker**: containers provide essential filesystem and process isolation
+> - **Internal networks only**: deploy on VPN or Docker networks, not public internet
 > - **Know your auth method**:
->   - *API keys* (Anthropic API) — pay-per-token, suitable for automation
->   - *OAuth tokens* (Claude Pro/Max) — subscription plans may restrict commercial use and automation; review [Anthropic's Consumer Terms](https://www.anthropic.com/legal/consumer-terms)
+>   - *API keys* (Anthropic API): pay-per-token, suitable for automation
+>   - *OAuth tokens* (Claude Pro/Max): subscription plans may restrict commercial use and automation; review [Anthropic's Consumer Terms](https://www.anthropic.com/legal/consumer-terms)
 >
 > **You are responsible for compliance with Anthropic's Terms of Service.**
 
