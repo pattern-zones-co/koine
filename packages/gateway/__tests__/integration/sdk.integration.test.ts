@@ -21,6 +21,7 @@ import {
 } from "vitest";
 import { z } from "zod";
 import {
+	afterSpawnCalled,
 	createCliResultJson,
 	createMockChildProcess,
 	createStreamAssistantMessage,
@@ -101,8 +102,8 @@ describe("SDK Integration Tests", () => {
 				prompt: "Hello",
 			});
 
-			// Simulate CLI response after a short delay
-			setTimeout(() => {
+			// Simulate CLI response after spawn is called
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(
@@ -115,7 +116,7 @@ describe("SDK Integration Tests", () => {
 				);
 				mockProc.exitCode = 0;
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			const result = await promise;
 
@@ -135,14 +136,14 @@ describe("SDK Integration Tests", () => {
 				prompt: "Hello",
 			});
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(createCliResultJson({ result: "Hi there!" })),
 				);
 				mockProc.exitCode = 0;
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			const result = await promise;
 
@@ -180,7 +181,7 @@ describe("SDK Integration Tests", () => {
 				schema: personSchema,
 			});
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(
@@ -191,7 +192,7 @@ describe("SDK Integration Tests", () => {
 				);
 				mockProc.exitCode = 0;
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			const result = await promise;
 
@@ -220,7 +221,7 @@ describe("SDK Integration Tests", () => {
 				schema: addressSchema,
 			});
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(
@@ -236,7 +237,7 @@ describe("SDK Integration Tests", () => {
 				);
 				mockProc.exitCode = 0;
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			const result = await promise;
 
@@ -256,29 +257,20 @@ describe("SDK Integration Tests", () => {
 
 			// Simulate streaming response using newline-delimited JSON (NDJSON)
 			// Each JSON object must end with a newline for the gateway's line parser
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				// Text chunks (assistant messages with newlines)
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(`${createStreamAssistantMessage("One ")}\n`),
 				);
-			}, 30);
-
-			setTimeout(() => {
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(`${createStreamAssistantMessage("Two ")}\n`),
 				);
-			}, 60);
-
-			setTimeout(() => {
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(`${createStreamAssistantMessage("Three")}\n`),
 				);
-			}, 90);
-
-			setTimeout(() => {
 				// Result event (with newline)
 				mockProc.stdout.emit(
 					"data",
@@ -288,7 +280,7 @@ describe("SDK Integration Tests", () => {
 				);
 				mockProc.exitCode = 0;
 				mockProc.emit("close", 0, null);
-			}, 120);
+			});
 
 			const result = await promise;
 
@@ -343,11 +335,11 @@ describe("SDK Integration Tests", () => {
 				prompt: "test",
 			});
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.stderr.emit("data", Buffer.from("CLI error occurred"));
 				mockProc.exitCode = 1;
 				mockProc.emit("close", 1, null);
-			}, 50);
+			});
 
 			await expect(promise).rejects.toBeInstanceOf(KoineError);
 		});
