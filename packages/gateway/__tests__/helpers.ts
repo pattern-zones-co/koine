@@ -253,3 +253,42 @@ export async function advanceTimersAndFlush(ms: number): Promise<void> {
 	vi.advanceTimersByTime(ms);
 	await vi.runAllTimersAsync();
 }
+
+// =============================================================================
+// Spawn Polling Helpers
+// =============================================================================
+
+/**
+ * Schedule callback after spawn is called (non-blocking).
+ *
+ * This helper eliminates flaky tests caused by setTimeout with arbitrary delays.
+ * Instead of guessing when spawn will be called, it polls until spawn is actually
+ * called, then executes the callback.
+ *
+ * @example
+ * ```typescript
+ * const responsePromise = request(app).post("/stream").send({ prompt: "Hello" });
+ *
+ * afterSpawnCalled(mockSpawn, () => {
+ *   mockProc.emit("close", 0, null);
+ * });
+ *
+ * const res = await responsePromise;
+ * ```
+ */
+export function afterSpawnCalled(
+	mockSpawn: ReturnType<typeof vi.fn>,
+	callback: () => void,
+): void {
+	let iterations = 0;
+	const check = () => {
+		if (mockSpawn.mock.calls.length > 0) {
+			callback();
+		} else if (iterations++ < 1000) {
+			setTimeout(check, 1);
+		} else {
+			throw new Error("Timeout waiting for spawn to be called");
+		}
+	};
+	check();
+}

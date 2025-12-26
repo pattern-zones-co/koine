@@ -9,25 +9,7 @@ import express from "express";
 import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import healthRouter from "../../src/routes/health.js";
-import { createMockChildProcess } from "../helpers.js";
-
-/** Schedule callback after spawn is called (non-blocking) */
-function afterSpawnCalled(
-	mockSpawn: ReturnType<typeof vi.fn>,
-	callback: () => void,
-): void {
-	let iterations = 0;
-	const check = () => {
-		if (mockSpawn.mock.calls.length > 0) {
-			callback();
-		} else if (iterations++ < 1000) {
-			setTimeout(check, 1);
-		} else {
-			throw new Error("Timeout waiting for spawn to be called");
-		}
-	};
-	check();
-}
+import { afterSpawnCalled, createMockChildProcess } from "../helpers.js";
 
 // Mock node:child_process
 vi.mock("node:child_process", () => ({
