@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.0](https://github.com/pattern-zones-co/koine/compare/v2.0.4...v2.1.0) (2025-12-26)
+
+
+### Features
+
+* **gateway:** add concurrency limits for request handling ([#65](https://github.com/pattern-zones-co/koine/issues/65)) ([c36a43d](https://github.com/pattern-zones-co/koine/commit/c36a43d2b39d93f1fe6e609a7e298fee6d93c3bd))
+
+
+### Documentation
+
+* add CLAUDE.md for Claude Code guidance ([e37f9b3](https://github.com/pattern-zones-co/koine/commit/e37f9b3331ab397289ba96d2a8127f393ffd50f8))
+
 ## [2.0.4](https://github.com/pattern-zones-co/koine/compare/v2.0.3...v2.0.4) (2025-12-26)
 
 
