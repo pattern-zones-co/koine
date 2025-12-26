@@ -1,11 +1,16 @@
 /**
  * Tests for concurrency limiting module (concurrency.ts).
  *
- * Tests the acquire/release semaphore logic and the withConcurrencyLimit wrapper.
+ * Tests the acquire/release counting logic and the withConcurrencyLimit wrapper.
+ * Note: This is a counting-based limiter (reject when full), not a queuing semaphore.
  */
 
 import { spawn } from "node:child_process";
-import express, { type Request, type Response } from "express";
+import express, {
+	type NextFunction,
+	type Request,
+	type Response,
+} from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -18,6 +23,7 @@ import {
 	withConcurrencyLimit,
 } from "../src/concurrency.js";
 import generateRouter from "../src/routes/generate.js";
+import streamRouter from "../src/routes/stream.js";
 import {
 	afterSpawnCalled,
 	createCliResultJson,
@@ -32,12 +38,16 @@ vi.mock("node:child_process", () => ({
 
 const mockSpawn = vi.mocked(spawn);
 
+const DEFAULT_CONFIG = {
+	maxStreamingConcurrent: 3,
+	maxNonStreamingConcurrent: 5,
+};
+
 describe("Concurrency Module", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		resetState();
-		// Reset to default limits
-		setConfig({ maxStreamingConcurrent: 3, maxNonStreamingConcurrent: 5 });
+		setConfig(DEFAULT_CONFIG);
 	});
 
 	describe("acquireSlot / releaseSlot", () => {
@@ -132,13 +142,41 @@ describe("Concurrency Module", () => {
 			expect(config.maxStreamingConcurrent).toBe(5);
 			expect(config.maxNonStreamingConcurrent).toBe(20);
 		});
+
+		it("throws on negative streaming limit", () => {
+			expect(() => setConfig({ maxStreamingConcurrent: -1 })).toThrow(
+				"Invalid maxStreamingConcurrent: -1. Must be a non-negative integer.",
+			);
+		});
+
+		it("throws on negative non-streaming limit", () => {
+			expect(() => setConfig({ maxNonStreamingConcurrent: -5 })).toThrow(
+				"Invalid maxNonStreamingConcurrent: -5. Must be a non-negative integer.",
+			);
+		});
+
+		it("throws on NaN streaming limit", () => {
+			expect(() => setConfig({ maxStreamingConcurrent: Number.NaN })).toThrow(
+				"Invalid maxStreamingConcurrent: NaN. Must be a non-negative integer.",
+			);
+		});
+
+		it("throws on float streaming limit", () => {
+			expect(() => setConfig({ maxStreamingConcurrent: 3.5 })).toThrow(
+				"Invalid maxStreamingConcurrent: 3.5. Must be a non-negative integer.",
+			);
+		});
+
+		it("allows zero as valid limit", () => {
+			setConfig({ maxStreamingConcurrent: 0 });
+			expect(getConfig().maxStreamingConcurrent).toBe(0);
+		});
 	});
 
 	describe("withConcurrencyLimit", () => {
-		function createTestApp() {
+		function createTestApp(): express.Express {
 			const app = express();
 			app.use(express.json());
-
 			app.post(
 				"/test",
 				withConcurrencyLimit(
@@ -148,12 +186,10 @@ describe("Concurrency Module", () => {
 					},
 				),
 			);
-
 			return app;
 		}
 
 		it("allows request when under limit", async () => {
-			setConfig({ maxStreamingConcurrent: 3, maxNonStreamingConcurrent: 5 });
 			const app = createTestApp();
 
 			const res = await request(app).post("/test").send({});
@@ -188,10 +224,42 @@ describe("Concurrency Module", () => {
 			const res2 = await request(app).post("/test").send({});
 			expect(res2.status).toBe(200);
 		});
+
+		it("releases slot when handler throws an error", async () => {
+			setConfig({ maxStreamingConcurrent: 3, maxNonStreamingConcurrent: 1 });
+
+			let errorCaught = false;
+			const app = express();
+			app.use(express.json());
+			app.post(
+				"/test",
+				withConcurrencyLimit("nonStreaming", async (_req, _res, next) => {
+					// Simulate an error that gets passed to next() - this is how Express
+					// async error handling works when properly wrapped
+					next(new Error("Handler failed"));
+				}),
+			);
+			app.use(
+				(err: Error, _req: Request, res: Response, _next: NextFunction) => {
+					errorCaught = true;
+					res.status(500).json({ error: err.message });
+				},
+			);
+
+			const res = await request(app).post("/test").send({});
+
+			expect(res.status).toBe(500);
+			expect(res.body.error).toBe("Handler failed");
+			expect(errorCaught).toBe(true);
+
+			// Verify slot was released - status should show 0 active
+			const status = getStatus();
+			expect(status.nonStreaming.active).toBe(0);
+		});
 	});
 
 	describe("Integration with generate routes", () => {
-		function createTestApp() {
+		function createGenerateApp(): express.Express {
 			const app = express();
 			app.use(express.json());
 			app.use(generateRouter);
@@ -199,10 +267,9 @@ describe("Concurrency Module", () => {
 		}
 
 		it("returns 429 when limit is zero (verifies wrapper is applied)", async () => {
-			// Set limit to 0 - any request should be rejected immediately
-			setConfig({ maxStreamingConcurrent: 3, maxNonStreamingConcurrent: 0 });
+			setConfig({ maxNonStreamingConcurrent: 0 });
 
-			const app = createTestApp();
+			const app = createGenerateApp();
 
 			const res = await request(app)
 				.post("/generate-text")
@@ -214,12 +281,10 @@ describe("Concurrency Module", () => {
 		});
 
 		it("allows request when under limit (verifies wrapper is applied)", async () => {
-			setConfig({ maxStreamingConcurrent: 3, maxNonStreamingConcurrent: 5 });
-
 			const mockProc = createMockChildProcess();
 			mockSpawn.mockReturnValue(mockProc as never);
 
-			const app = createTestApp();
+			const app = createGenerateApp();
 
 			const p = request(app).post("/generate-text").send({ prompt: "Hello" });
 			afterSpawnCalled(mockSpawn, () => {
@@ -227,6 +292,58 @@ describe("Concurrency Module", () => {
 			});
 			const res = await p;
 
+			expect(res.status).toBe(200);
+		});
+	});
+
+	describe("Integration with stream routes", () => {
+		function createStreamApp(): express.Express {
+			const app = express();
+			app.use(express.json());
+			app.use(streamRouter);
+			return app;
+		}
+
+		it("returns 429 when streaming limit is zero (verifies wrapper is applied)", async () => {
+			setConfig({ maxStreamingConcurrent: 0 });
+
+			const app = createStreamApp();
+
+			const res = await request(app).post("/stream").send({ prompt: "Hello" });
+
+			expect(res.status).toBe(429);
+			expect(res.body.code).toBe("CONCURRENCY_LIMIT_ERROR");
+			expect(res.headers["retry-after"]).toBe("5");
+		});
+
+		it("uses streaming pool not non-streaming pool", async () => {
+			// Non-streaming at 0, streaming at 1
+			setConfig({ maxStreamingConcurrent: 1, maxNonStreamingConcurrent: 0 });
+
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			const app = createStreamApp();
+
+			const p = request(app).post("/stream").send({ prompt: "Hello" });
+			afterSpawnCalled(mockSpawn, () => {
+				// Send a minimal stream response
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(
+						`${JSON.stringify({
+							type: "result",
+							subtype: "success",
+							result: "Hi",
+							session_id: "test-session",
+						})}\n`,
+					),
+				);
+				mockProc.emit("close", 0);
+			});
+			const res = await p;
+
+			// Should succeed because it uses streaming pool (limit 1), not non-streaming (limit 0)
 			expect(res.status).toBe(200);
 		});
 	});

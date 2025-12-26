@@ -1,6 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express";
+import { logger } from "./logger.js";
 
-// Configuration from environment
 export interface ConcurrencyConfig {
 	maxStreamingConcurrent: number;
 	maxNonStreamingConcurrent: number;
@@ -8,19 +8,57 @@ export interface ConcurrencyConfig {
 
 export type RequestType = "streaming" | "nonStreaming";
 
-// Load configuration from environment
+const DEFAULT_STREAMING_LIMIT = 3;
+const DEFAULT_NONSTREAMING_LIMIT = 5;
+const RETRY_AFTER_SECONDS = "5";
+
+/**
+ * Parse and validate a concurrency limit from an environment variable.
+ * Returns the default value if the env var is missing or invalid.
+ */
+function parseLimit(envVar: string, defaultValue: number): number {
+	const envValue = process.env[envVar];
+	if (envValue === undefined || envValue === "") {
+		return defaultValue;
+	}
+
+	const parsed = Number.parseInt(envValue, 10);
+
+	if (Number.isNaN(parsed)) {
+		logger.error(
+			`Invalid value for ${envVar}: "${envValue}" is not a valid integer. Using default: ${defaultValue}`,
+		);
+		return defaultValue;
+	}
+
+	if (parsed < 0) {
+		logger.error(
+			`Invalid value for ${envVar}: "${envValue}" must be non-negative. Using default: ${defaultValue}`,
+		);
+		return defaultValue;
+	}
+
+	if (parsed === 0) {
+		logger.warn(
+			`${envVar} is set to 0, which will reject all requests of this type`,
+		);
+	}
+
+	return parsed;
+}
+
 const config: ConcurrencyConfig = {
-	maxStreamingConcurrent: Number.parseInt(
-		process.env.KOINE_MAX_STREAMING_CONCURRENT || "3",
-		10,
+	maxStreamingConcurrent: parseLimit(
+		"KOINE_MAX_STREAMING_CONCURRENT",
+		DEFAULT_STREAMING_LIMIT,
 	),
-	maxNonStreamingConcurrent: Number.parseInt(
-		process.env.KOINE_MAX_NONSTREAMING_CONCURRENT || "5",
-		10,
+	maxNonStreamingConcurrent: parseLimit(
+		"KOINE_MAX_NONSTREAMING_CONCURRENT",
+		DEFAULT_NONSTREAMING_LIMIT,
 	),
 };
 
-// State (module-scoped - safe because Bun is single-threaded for JS execution)
+// Module-scoped state (safe because JavaScript's event loop is single-threaded)
 let streamingCount = 0;
 let nonStreamingCount = 0;
 
@@ -29,17 +67,21 @@ let nonStreamingCount = 0;
  * Returns true if slot acquired, false if at limit.
  */
 export function acquireSlot(type: RequestType): boolean {
-	if (type === "streaming") {
-		if (streamingCount >= config.maxStreamingConcurrent) {
-			return false;
-		}
-		streamingCount++;
-		return true;
-	}
-	if (nonStreamingCount >= config.maxNonStreamingConcurrent) {
+	const isStreaming = type === "streaming";
+	const current = isStreaming ? streamingCount : nonStreamingCount;
+	const limit = isStreaming
+		? config.maxStreamingConcurrent
+		: config.maxNonStreamingConcurrent;
+
+	if (current >= limit) {
 		return false;
 	}
-	nonStreamingCount++;
+
+	if (isStreaming) {
+		streamingCount++;
+	} else {
+		nonStreamingCount++;
+	}
 	return true;
 }
 
@@ -90,28 +132,54 @@ export function getConfig(): ConcurrencyConfig {
 
 /**
  * Set configuration (useful for testing).
+ * Validates that values are non-negative integers.
  */
 export function setConfig(newConfig: Partial<ConcurrencyConfig>): void {
 	if (newConfig.maxStreamingConcurrent !== undefined) {
+		if (
+			!Number.isInteger(newConfig.maxStreamingConcurrent) ||
+			newConfig.maxStreamingConcurrent < 0
+		) {
+			throw new Error(
+				`Invalid maxStreamingConcurrent: ${newConfig.maxStreamingConcurrent}. Must be a non-negative integer.`,
+			);
+		}
 		config.maxStreamingConcurrent = newConfig.maxStreamingConcurrent;
 	}
 	if (newConfig.maxNonStreamingConcurrent !== undefined) {
+		if (
+			!Number.isInteger(newConfig.maxNonStreamingConcurrent) ||
+			newConfig.maxNonStreamingConcurrent < 0
+		) {
+			throw new Error(
+				`Invalid maxNonStreamingConcurrent: ${newConfig.maxNonStreamingConcurrent}. Must be a non-negative integer.`,
+			);
+		}
 		config.maxNonStreamingConcurrent = newConfig.maxNonStreamingConcurrent;
 	}
 }
 
 /**
  * Wrap an Express request handler with concurrency limiting.
- * Returns 429 if at limit, otherwise executes handler and releases slot on completion.
+ * Returns 429 with Retry-After header if at limit.
+ * Otherwise executes handler and releases slot on response completion
+ * (via 'finish' or 'close' events) or if the handler throws.
  */
 export function withConcurrencyLimit(
 	type: RequestType,
 	handler: RequestHandler,
 ): RequestHandler {
 	return async (req: Request, res: Response, next: NextFunction) => {
-		const acquired = acquireSlot(type);
-		if (!acquired) {
-			res.setHeader("Retry-After", "5");
+		if (!acquireSlot(type)) {
+			const status = getStatus();
+			const pool =
+				type === "streaming" ? status.streaming : status.nonStreaming;
+			logger.warn(`Concurrency limit exceeded for ${type} request`, {
+				path: req.path,
+				active: pool.active,
+				limit: pool.limit,
+			});
+			res.setHeader("Retry-After", RETRY_AFTER_SECONDS);
 			return res.status(429).json({
 				error: "Concurrency limit exceeded",
 				code: "CONCURRENCY_LIMIT_ERROR",
@@ -120,14 +188,15 @@ export function withConcurrencyLimit(
 
 		// Track whether we've released to prevent double-release
 		let released = false;
-		const release = () => {
-			if (!released) {
-				released = true;
-				releaseSlot(type);
-			}
-		};
+		function release(): void {
+			if (released) return;
+			released = true;
+			releaseSlot(type);
+		}
 
-		// Release on any response completion
+		// Release slot when response completes:
+		// - 'finish' fires when response is flushed to the OS
+		// - 'close' fires when the underlying connection closes (including client disconnect)
 		res.on("finish", release);
 		res.on("close", release);
 
@@ -135,6 +204,10 @@ export function withConcurrencyLimit(
 			await handler(req, res, next);
 		} catch (error) {
 			release();
+			logger.error(`Error in ${type} handler, slot released`, {
+				path: req.path,
+				error: error instanceof Error ? error.message : String(error),
+			});
 			throw error;
 		}
 	};
