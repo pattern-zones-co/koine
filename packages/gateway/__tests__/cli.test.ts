@@ -44,23 +44,23 @@ describe("CLI Module", () => {
 			process.env = originalEnv;
 		});
 
-		it("returns process.env when no OAuth token is set", () => {
-			process.env.CLAUDE_CODE_OAUTH_TOKEN = undefined;
-			process.env.ANTHROPIC_API_KEY = "test-api-key";
+		it("returns process.env when no API key is set", () => {
+			process.env.ANTHROPIC_API_KEY = undefined;
+			process.env.CLAUDE_CODE_OAUTH_TOKEN = "oauth-token";
 
 			const env = buildClaudeEnv();
 
-			expect(env.ANTHROPIC_API_KEY).toBe("test-api-key");
+			expect(env.CLAUDE_CODE_OAUTH_TOKEN).toBe("oauth-token");
 		});
 
-		it("clears ANTHROPIC_API_KEY when OAuth token is present", () => {
-			process.env.CLAUDE_CODE_OAUTH_TOKEN = "oauth-token";
+		it("clears OAuth token when API key is present", () => {
 			process.env.ANTHROPIC_API_KEY = "test-api-key";
+			process.env.CLAUDE_CODE_OAUTH_TOKEN = "oauth-token";
 
 			const env = buildClaudeEnv();
 
-			expect(env.ANTHROPIC_API_KEY).toBeUndefined();
-			expect(env.CLAUDE_CODE_OAUTH_TOKEN).toBe("oauth-token");
+			expect(env.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined();
+			expect(env.ANTHROPIC_API_KEY).toBe("test-api-key");
 		});
 	});
 

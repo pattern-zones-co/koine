@@ -5,7 +5,12 @@ import type { ClaudeCliOutput, ErrorCode, UsageInfo } from "./types.js";
 
 /**
  * Builds environment variables for Claude CLI with auth precedence.
- * Prefers OAuth token (Max subscription) over API key when both are present.
+ * Prefers API key over OAuth token when both are present.
+ *
+ * CLAUDE_CODE_OAUTH_TOKEN is an undocumented fallback for personal testing only.
+ * OAuth tokens (Claude Pro/Max) operate under Anthropic's Consumer Terms which
+ * prohibit automated access. Use ANTHROPIC_API_KEY for all automation.
+ * See: https://www.anthropic.com/legal/consumer-terms
  *
  * Also passes through tool proxy variables for Claude skills that need to
  * invoke Inbox Zero API tools.
@@ -15,9 +20,10 @@ export function buildClaudeEnv(options?: {
 }): NodeJS.ProcessEnv {
 	const env = { ...process.env };
 
-	// Prefer OAuth token for Max subscribers over API key
-	if (env.CLAUDE_CODE_OAUTH_TOKEN) {
-		env.ANTHROPIC_API_KEY = undefined;
+	// API key takes precedence - OAuth is undocumented fallback for personal testing only.
+	// OAuth tokens may violate Anthropic's Consumer Terms for automated use.
+	if (env.ANTHROPIC_API_KEY) {
+		env.CLAUDE_CODE_OAUTH_TOKEN = undefined;
 	}
 
 	// Pass through tool proxy variables for Claude skills

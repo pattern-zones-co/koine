@@ -101,10 +101,9 @@ console.log(result.text);
 >
 > - **Use Docker**: containers provide essential filesystem and process isolation
 > - **Internal networks only**: deploy on VPN or Docker networks, not public internet
-> - **Use API keys for automation**: Anthropic API keys are the recommended authentication method. They operate under the [Commercial Terms](https://www.anthropic.com/legal/commercial-terms) which permit programmatic access.
-> - **OAuth tokens for personal use only**: Claude Pro/Max OAuth tokens are appropriate for personal testing and development. For production or shared deployments, use an API key.
+> - **Use API keys**: Anthropic API keys operate under the [Commercial Terms](https://www.anthropic.com/legal/commercial-terms) which permit programmatic access
 >
-> See [Environment Variables](docs/environment-variables.md#terms-considerations) for details.
+> See [Environment Variables](docs/environment-variables.md) for configuration details.
 
 ## Documentation
 
