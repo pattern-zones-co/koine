@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.4](https://github.com/pattern-zones-co/koine/compare/v2.0.3...v2.0.4) (2025-12-26)
+
+
+### Documentation
+
+* add link to openapi.yaml in api-reference ([39b3424](https://github.com/pattern-zones-co/koine/commit/39b34243caf28da906a0184349053c3427108582))
+* recommend API keys over OAuth tokens for automation ([e7dd97d](https://github.com/pattern-zones-co/koine/commit/e7dd97d683521307830e665d1e044f8a54bcce47))
+
+
+### Code Refactoring
+
+* **test:** replace setTimeout with deterministic spawn polling ([#63](https://github.com/pattern-zones-co/koine/issues/63)) ([bd2a7c6](https://github.com/pattern-zones-co/koine/commit/bd2a7c6bb06cb90579507f7aac8e53be88c1ae5b))
+
 ## [2.0.3](https://github.com/pattern-zones-co/koine/compare/v2.0.2...v2.0.3) (2025-12-26)
 
 
