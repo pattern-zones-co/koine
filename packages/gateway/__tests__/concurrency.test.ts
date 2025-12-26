@@ -256,6 +256,71 @@ describe("Concurrency Module", () => {
 			const status = getStatus();
 			expect(status.nonStreaming.active).toBe(0);
 		});
+
+		it("rejects requests when slots are exhausted", async () => {
+			// Test that third request is rejected when two slots are occupied
+			setConfig({ maxStreamingConcurrent: 3, maxNonStreamingConcurrent: 2 });
+
+			// Manually occupy two slots
+			acquireSlot("nonStreaming");
+			acquireSlot("nonStreaming");
+			expect(getStatus().nonStreaming.active).toBe(2);
+
+			const app = express();
+			app.use(express.json());
+			app.post(
+				"/test",
+				withConcurrencyLimit("nonStreaming", async (_req, res) => {
+					res.json({ success: true });
+				}),
+			);
+
+			// This request should be rejected because both slots are occupied
+			const res = await request(app).post("/test").send({});
+
+			expect(res.status).toBe(429);
+			expect(res.body.code).toBe("CONCURRENCY_LIMIT_ERROR");
+
+			// Release one slot and verify next request succeeds
+			releaseSlot("nonStreaming");
+			const res2 = await request(app).post("/test").send({});
+			expect(res2.status).toBe(200);
+		});
+
+		it("releases slot on response close event (client disconnect)", async () => {
+			setConfig({ maxStreamingConcurrent: 3, maxNonStreamingConcurrent: 1 });
+
+			// Track events
+			let finishFired = false;
+			let closeFired = false;
+
+			const app = express();
+			app.use(express.json());
+			app.post(
+				"/test",
+				withConcurrencyLimit("nonStreaming", async (_req, res) => {
+					// Track when events fire
+					res.on("finish", () => {
+						finishFired = true;
+					});
+					res.on("close", () => {
+						closeFired = true;
+					});
+					res.json({ success: true });
+				}),
+			);
+
+			const res = await request(app).post("/test").send({});
+
+			expect(res.status).toBe(200);
+			// Both events should fire for a normal response
+			expect(finishFired).toBe(true);
+			expect(closeFired).toBe(true);
+
+			// Slot should be released
+			const status = getStatus();
+			expect(status.nonStreaming.active).toBe(0);
+		});
 	});
 
 	describe("Integration with generate routes", () => {

@@ -77,10 +77,14 @@ export const errorResponseSchema = z.object({
 	rawText: z.string().optional(),
 });
 
-const concurrencyPoolSchema = z.object({
-	active: z.number(),
-	limit: z.number(),
-});
+const concurrencyPoolSchema = z
+	.object({
+		active: z.number().int().nonnegative(),
+		limit: z.number().int().nonnegative(),
+	})
+	.refine((data) => data.active <= data.limit, {
+		message: "active cannot exceed limit",
+	});
 
 export const healthResponseSchema = z.object({
 	status: z.enum(["healthy", "unhealthy"]),

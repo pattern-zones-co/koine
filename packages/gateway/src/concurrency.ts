@@ -124,7 +124,8 @@ export function resetState(): void {
 }
 
 /**
- * Get current configuration (useful for testing).
+ * Get current configuration.
+ * Returns a shallow copy to prevent external mutation.
  */
 export function getConfig(): ConcurrencyConfig {
 	return { ...config };
