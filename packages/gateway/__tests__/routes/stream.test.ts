@@ -10,6 +10,7 @@ import request from "supertest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import streamRouter from "../../src/routes/stream.js";
 import {
+	afterSpawnCalled,
 	createMockChildProcess,
 	createStreamAssistantMessage,
 	createStreamResultMessage,
@@ -62,10 +63,10 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello" });
 
-			// Complete the stream quickly
-			setTimeout(() => {
+			// Complete the stream after spawn is called
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			const res = await responsePromise;
 
@@ -84,9 +85,9 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			const res = await responsePromise;
 			const events = parseSSEResponse(res.text);
@@ -107,7 +108,7 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				// Simulate streaming text chunks
 				mockProc.stdout.emit(
 					"data",
@@ -122,7 +123,7 @@ describe("Stream Route", () => {
 					Buffer.from(`${createStreamResultMessage()}\n`),
 				);
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			const res = await responsePromise;
 			const events = parseSSEResponse(res.text);
@@ -142,7 +143,7 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(
@@ -153,7 +154,7 @@ describe("Stream Route", () => {
 					),
 				);
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			const res = await responsePromise;
 			const events = parseSSEResponse(res.text);
@@ -183,9 +184,9 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			const res = await responsePromise;
 			const events = parseSSEResponse(res.text);
@@ -204,11 +205,11 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.stderr.emit("data", Buffer.from("Rate limit exceeded"));
 				mockProc.exitCode = 1;
 				mockProc.emit("close", 1, null);
-			}, 50);
+			});
 
 			const res = await responsePromise;
 			const events = parseSSEResponse(res.text);
@@ -232,13 +233,13 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				// Simulate TCP chunking - JSON split across two data events
 				const fullMessage = createStreamAssistantMessage("Complete");
 				mockProc.stdout.emit("data", Buffer.from(fullMessage.slice(0, 20)));
 				mockProc.stdout.emit("data", Buffer.from(`${fullMessage.slice(20)}\n`));
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			const res = await responsePromise;
 			const events = parseSSEResponse(res.text);
@@ -257,11 +258,11 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				// Emit a non-JSON line
 				mockProc.stdout.emit("data", Buffer.from("This is not JSON\n"));
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			const res = await responsePromise;
 			const events = parseSSEResponse(res.text);
@@ -282,9 +283,9 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello", model: "sonnet" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			await responsePromise;
 
@@ -304,9 +305,9 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			await responsePromise;
 
@@ -326,9 +327,9 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello", sessionId: "session-xyz" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			await responsePromise;
 
@@ -348,9 +349,9 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			await responsePromise;
 
@@ -366,10 +367,10 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				// Simulate spawn error (e.g., command not found)
 				mockProc.emit("error", new Error("ENOENT: command not found"));
-			}, 50);
+			});
 
 			const res = await responsePromise;
 			const events = parseSSEResponse(res.text);
@@ -392,7 +393,7 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				// Send a result message without trailing newline (remains in buffer)
 				const resultMsg = JSON.stringify({
 					type: "result",
@@ -403,7 +404,7 @@ describe("Stream Route", () => {
 				mockProc.stdout.emit("data", Buffer.from(resultMsg));
 				// Close without newline - buffer should be processed in close handler
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			const res = await responsePromise;
 			const events = parseSSEResponse(res.text);
@@ -424,9 +425,9 @@ describe("Stream Route", () => {
 				.post("/stream")
 				.send({ prompt: "Hello", system: "Be helpful" });
 
-			setTimeout(() => {
+			afterSpawnCalled(mockSpawn, () => {
 				mockProc.emit("close", 0, null);
-			}, 50);
+			});
 
 			await responsePromise;
 
