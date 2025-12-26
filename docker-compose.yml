@@ -14,8 +14,7 @@ services:
       HOME: /home/bun
       # Authentication for the gateway API
       CLAUDE_CODE_GATEWAY_API_KEY: ${CLAUDE_CODE_GATEWAY_API_KEY:-}
-      # Claude auth: ANTHROPIC_API_KEY recommended for automation (see docs/environment-variables.md)
-      # OAuth tokens are appropriate for personal testing and development only
+      # Claude authentication
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
     volumes:
