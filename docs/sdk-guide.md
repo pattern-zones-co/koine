@@ -171,6 +171,42 @@ except KoineError as e:
         print(f"Raw response: {e.raw_text}")
 ```
 
+### Handling Concurrency Limits
+
+The gateway limits concurrent requests to prevent resource exhaustion. When limits are exceeded, it returns a `429` status with `CONCURRENCY_LIMIT_ERROR`. The SDKs do not automatically retry—you should implement retry logic:
+
+**TypeScript:**
+```typescript
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (error instanceof KoineError && error.code === 'CONCURRENCY_LIMIT_ERROR') {
+        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+```
+
+**Python:**
+```python
+async def with_retry(fn, max_retries=3):
+    for i in range(max_retries):
+        try:
+            return await fn()
+        except KoineError as e:
+            if e.code == "CONCURRENCY_LIMIT_ERROR":
+                await asyncio.sleep(1 * (i + 1))
+                continue
+            raise
+    raise Exception("Max retries exceeded")
+```
+
 ## Multi-turn Conversations
 
 ### TypeScript

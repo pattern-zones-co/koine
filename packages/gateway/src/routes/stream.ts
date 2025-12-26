@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { type Request, type Response, Router } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { buildClaudeEnv } from "../cli.js";
+import { withConcurrencyLimit } from "../concurrency.js";
 import { logger } from "../logger.js";
 import { streamRequestSchema } from "../types.js";
 
@@ -59,268 +60,281 @@ const router: Router = Router();
  * - Line buffering for TCP chunk handling
  * - Proper cleanup on client disconnect
  */
-router.post("/stream", async (req: Request, res: Response) => {
-	const parseResult = streamRequestSchema.safeParse(req.body);
+router.post(
+	"/stream",
+	withConcurrencyLimit("streaming", async (req: Request, res: Response) => {
+		const parseResult = streamRequestSchema.safeParse(req.body);
 
-	if (!parseResult.success) {
-		res.status(400).json({
-			error: "Invalid request body",
-			code: "VALIDATION_ERROR",
-			rawText: JSON.stringify(parseResult.error.issues),
-		});
-		return;
-	}
-
-	const { prompt, system, sessionId, model, userEmail } = parseResult.data;
-
-	// Set up SSE headers
-	res.setHeader("Content-Type", "text/event-stream");
-	res.setHeader("Cache-Control", "no-cache");
-	res.setHeader("Connection", "keep-alive");
-	res.setHeader("X-Accel-Buffering", "no");
-	res.flushHeaders(); // Important: send headers immediately for SSE
-
-	// Disable Nagle's algorithm for immediate write transmission
-	// This prevents TCP from batching small writes together
-	if (res.socket) {
-		res.socket.setNoDelay(true);
-	}
-
-	// Track response state to prevent writes after close
-	let isResponseClosed = false;
-	let timeoutId: NodeJS.Timeout | undefined;
-
-	// Build CLI arguments
-	const args = buildStreamArgs({ prompt, system, sessionId, model });
-
-	logger.info("Spawning Claude CLI for stream", { args });
-
-	const claude = spawn("claude", args, {
-		stdio: ["pipe", "pipe", "pipe"],
-		env: buildClaudeEnv({ userEmail }),
-	});
-
-	const currentSessionId = sessionId || uuidv4();
-
-	// Safe event sender that checks response state
-	const safeSendEvent = (event: string, data: unknown): boolean => {
-		if (isResponseClosed) {
-			logger.warn("Attempted to send event after response closed", { event });
-			return false;
+		if (!parseResult.success) {
+			res.status(400).json({
+				error: "Invalid request body",
+				code: "VALIDATION_ERROR",
+				rawText: JSON.stringify(parseResult.error.issues),
+			});
+			return;
 		}
-		try {
-			// Combine into single write for efficiency
-			const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-			res.write(message);
 
-			// Flush if available (compression middleware compatibility)
-			const flushable = res as { flush?: () => void };
-			if (flushable.flush) {
-				flushable.flush();
+		const { prompt, system, sessionId, model, userEmail } = parseResult.data;
+
+		// Set up SSE headers
+		res.setHeader("Content-Type", "text/event-stream");
+		res.setHeader("Cache-Control", "no-cache");
+		res.setHeader("Connection", "keep-alive");
+		res.setHeader("X-Accel-Buffering", "no");
+		res.flushHeaders(); // Important: send headers immediately for SSE
+
+		// Disable Nagle's algorithm for immediate write transmission
+		// This prevents TCP from batching small writes together
+		if (res.socket) {
+			res.socket.setNoDelay(true);
+		}
+
+		// Track response state to prevent writes after close
+		let isResponseClosed = false;
+		let timeoutId: NodeJS.Timeout | undefined;
+
+		// Build CLI arguments
+		const args = buildStreamArgs({ prompt, system, sessionId, model });
+
+		logger.info("Spawning Claude CLI for stream", { args });
+
+		const claude = spawn("claude", args, {
+			stdio: ["pipe", "pipe", "pipe"],
+			env: buildClaudeEnv({ userEmail }),
+		});
+
+		const currentSessionId = sessionId || uuidv4();
+
+		// Safe event sender that checks response state
+		const safeSendEvent = (event: string, data: unknown): boolean => {
+			if (isResponseClosed) {
+				logger.warn("Attempted to send event after response closed", { event });
+				return false;
 			}
+			try {
+				// Combine into single write for efficiency
+				const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+				res.write(message);
 
-			return true;
-		} catch (error) {
-			logger.error("Failed to write SSE event", {
-				event,
-				error: error instanceof Error ? error.message : String(error),
+				// Flush if available (compression middleware compatibility)
+				const flushable = res as { flush?: () => void };
+				if (flushable.flush) {
+					flushable.flush();
+				}
+
+				return true;
+			} catch (error) {
+				logger.error("Failed to write SSE event", {
+					event,
+					error: error instanceof Error ? error.message : String(error),
+				});
+				isResponseClosed = true;
+				return false;
+			}
+		};
+
+		// Cleanup function to properly terminate everything
+		const cleanup = (reason: string) => {
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+				timeoutId = undefined;
+			}
+			if (claude.exitCode === null && !claude.killed) {
+				logger.info("Killing Claude CLI process", { reason });
+				claude.kill("SIGTERM");
+				// Force kill after 1 second if still running
+				setTimeout(() => {
+					if (claude.exitCode === null && !claude.killed) {
+						claude.kill("SIGKILL");
+					}
+				}, 1000);
+			}
+		};
+
+		// Set up execution timeout
+		timeoutId = setTimeout(() => {
+			logger.error("Stream execution timed out", {
+				timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
+				sessionId: currentSessionId,
+			});
+			safeSendEvent("error", {
+				error: `Stream timed out after ${DEFAULT_STREAM_TIMEOUT_MS / 1000} seconds`,
+				code: "TIMEOUT_ERROR",
+			});
+			cleanup("timeout");
+			safeSendEvent("done", {
+				code: null,
+				signal: "SIGTERM",
+				reason: "timeout",
 			});
 			isResponseClosed = true;
-			return false;
-		}
-	};
+			res.end();
+		}, DEFAULT_STREAM_TIMEOUT_MS);
 
-	// Cleanup function to properly terminate everything
-	const cleanup = (reason: string) => {
-		if (timeoutId) {
-			clearTimeout(timeoutId);
-			timeoutId = undefined;
-		}
-		if (claude.exitCode === null && !claude.killed) {
-			logger.info("Killing Claude CLI process", { reason });
-			claude.kill("SIGTERM");
-			// Force kill after 1 second if still running
-			setTimeout(() => {
-				if (claude.exitCode === null && !claude.killed) {
-					claude.kill("SIGKILL");
-				}
-			}, 1000);
-		}
-	};
+		// Send initial event with session info
+		safeSendEvent("session", { sessionId: currentSessionId });
 
-	// Set up execution timeout
-	timeoutId = setTimeout(() => {
-		logger.error("Stream execution timed out", {
-			timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
-			sessionId: currentSessionId,
-		});
-		safeSendEvent("error", {
-			error: `Stream timed out after ${DEFAULT_STREAM_TIMEOUT_MS / 1000} seconds`,
-			code: "TIMEOUT_ERROR",
-		});
-		cleanup("timeout");
-		safeSendEvent("done", { code: null, signal: "SIGTERM", reason: "timeout" });
-		isResponseClosed = true;
-		res.end();
-	}, DEFAULT_STREAM_TIMEOUT_MS);
+		// Line buffer for handling TCP chunking
+		let lineBuffer = "";
 
-	// Send initial event with session info
-	safeSendEvent("session", { sessionId: currentSessionId });
+		// Track if we've received stream_events (to avoid duplicate text from assistant message)
+		let hasReceivedStreamEvents = false;
 
-	// Line buffer for handling TCP chunking
-	let lineBuffer = "";
+		// Collect stderr for error reporting (but don't spam events)
+		let stderrOutput = "";
 
-	// Track if we've received stream_events (to avoid duplicate text from assistant message)
-	let hasReceivedStreamEvents = false;
+		claude.stdout.on("data", (data: Buffer) => {
+			// Append to buffer to handle partial lines from TCP chunking
+			lineBuffer += data.toString();
 
-	// Collect stderr for error reporting (but don't spam events)
-	let stderrOutput = "";
+			// Process complete lines only
+			const lines = lineBuffer.split("\n");
+			// Keep the last potentially incomplete line in the buffer
+			lineBuffer = lines.pop() || "";
 
-	claude.stdout.on("data", (data: Buffer) => {
-		// Append to buffer to handle partial lines from TCP chunking
-		lineBuffer += data.toString();
+			for (const line of lines) {
+				if (!line.trim()) continue;
 
-		// Process complete lines only
-		const lines = lineBuffer.split("\n");
-		// Keep the last potentially incomplete line in the buffer
-		lineBuffer = lines.pop() || "";
-
-		for (const line of lines) {
-			if (!line.trim()) continue;
-
-			try {
-				const parsed = JSON.parse(line) as StreamMessage;
-				if (
-					parsed.type === "stream_event" &&
-					parsed.event?.type === "content_block_delta" &&
-					parsed.event.delta?.text
-				) {
-					// Progressive text chunk from --include-partial-messages
-					hasReceivedStreamEvents = true;
-					safeSendEvent("text", { text: parsed.event.delta.text });
-				} else if (parsed.type === "assistant" && parsed.message?.content) {
-					// Full assistant message - skip if we already sent progressive chunks
-					if (!hasReceivedStreamEvents) {
-						for (const block of parsed.message.content) {
-							if (block.type === "text") {
-								safeSendEvent("text", { text: block.text });
+				try {
+					const parsed = JSON.parse(line) as StreamMessage;
+					if (
+						parsed.type === "stream_event" &&
+						parsed.event?.type === "content_block_delta" &&
+						parsed.event.delta?.text
+					) {
+						// Progressive text chunk from --include-partial-messages
+						hasReceivedStreamEvents = true;
+						safeSendEvent("text", { text: parsed.event.delta.text });
+					} else if (parsed.type === "assistant" && parsed.message?.content) {
+						// Full assistant message - skip if we already sent progressive chunks
+						if (!hasReceivedStreamEvents) {
+							for (const block of parsed.message.content) {
+								if (block.type === "text") {
+									safeSendEvent("text", { text: block.text });
+								}
 							}
 						}
+					} else if (parsed.type === "result") {
+						// Final result
+						safeSendEvent("result", {
+							sessionId: parsed.session_id || currentSessionId,
+							usage: {
+								inputTokens: parsed.total_tokens_in || 0,
+								outputTokens: parsed.total_tokens_out || 0,
+								totalTokens:
+									(parsed.total_tokens_in || 0) +
+									(parsed.total_tokens_out || 0),
+							},
+						});
 					}
-				} else if (parsed.type === "result") {
-					// Final result
-					safeSendEvent("result", {
-						sessionId: parsed.session_id || currentSessionId,
-						usage: {
-							inputTokens: parsed.total_tokens_in || 0,
-							outputTokens: parsed.total_tokens_out || 0,
-							totalTokens:
-								(parsed.total_tokens_in || 0) + (parsed.total_tokens_out || 0),
-						},
-					});
-				}
-			} catch (error) {
-				// Only catch JSON parse errors - other errors should propagate
-				if (error instanceof SyntaxError) {
-					logger.warn("Stream: non-JSON line received, sending as raw text", {
-						linePreview: line.slice(0, 100),
-					});
-					safeSendEvent("text", { text: line });
-				} else {
-					throw error;
+				} catch (error) {
+					// Only catch JSON parse errors - other errors should propagate
+					if (error instanceof SyntaxError) {
+						logger.warn("Stream: non-JSON line received, sending as raw text", {
+							linePreview: line.slice(0, 100),
+						});
+						safeSendEvent("text", { text: line });
+					} else {
+						throw error;
+					}
 				}
 			}
-		}
-	});
+		});
 
-	claude.stderr.on("data", (data: Buffer) => {
-		const stderrChunk = data.toString();
-		stderrOutput += stderrChunk;
-		logger.warn("Claude CLI stderr", { stderr: stderrChunk });
-		// Don't send every stderr chunk as an error event - aggregate and report on close
-	});
+		claude.stderr.on("data", (data: Buffer) => {
+			const stderrChunk = data.toString();
+			stderrOutput += stderrChunk;
+			logger.warn("Claude CLI stderr", { stderr: stderrChunk });
+			// Don't send every stderr chunk as an error event - aggregate and report on close
+		});
 
-	claude.on("close", (code, signal) => {
-		if (timeoutId) {
-			clearTimeout(timeoutId);
-			timeoutId = undefined;
-		}
-
-		logger.info("Claude CLI closed", { code, signal, stderrOutput });
-
-		// Process any remaining data in line buffer
-		if (lineBuffer.trim()) {
-			try {
-				const parsed = JSON.parse(lineBuffer) as StreamMessage;
-				if (parsed.type === "result") {
-					safeSendEvent("result", {
-						sessionId: parsed.session_id || currentSessionId,
-						usage: {
-							inputTokens: parsed.total_tokens_in || 0,
-							outputTokens: parsed.total_tokens_out || 0,
-							totalTokens:
-								(parsed.total_tokens_in || 0) + (parsed.total_tokens_out || 0),
-						},
-					});
-				}
-			} catch {
-				// Log but don't fail - incomplete JSON in final buffer is expected
-				// when the CLI exits mid-stream (e.g., user cancellation)
-				logger.info(
-					"Final buffer parse incomplete (expected during interrupts)",
-					{
-						bufferLength: lineBuffer.length,
-						bufferPreview: lineBuffer.slice(0, 100),
-					},
-				);
+		claude.on("close", (code, signal) => {
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+				timeoutId = undefined;
 			}
-		}
 
-		if (code !== 0 && !isResponseClosed) {
-			const errorParts = [`CLI exited with code ${code}`];
-			if (signal) errorParts.push(`signal: ${signal}`);
-			if (stderrOutput) errorParts.push(stderrOutput.trim());
+			logger.info("Claude CLI closed", { code, signal, stderrOutput });
 
+			// Process any remaining data in line buffer
+			if (lineBuffer.trim()) {
+				try {
+					const parsed = JSON.parse(lineBuffer) as StreamMessage;
+					if (parsed.type === "result") {
+						safeSendEvent("result", {
+							sessionId: parsed.session_id || currentSessionId,
+							usage: {
+								inputTokens: parsed.total_tokens_in || 0,
+								outputTokens: parsed.total_tokens_out || 0,
+								totalTokens:
+									(parsed.total_tokens_in || 0) +
+									(parsed.total_tokens_out || 0),
+							},
+						});
+					}
+				} catch {
+					// Log but don't fail - incomplete JSON in final buffer is expected
+					// when the CLI exits mid-stream (e.g., user cancellation)
+					logger.info(
+						"Final buffer parse incomplete (expected during interrupts)",
+						{
+							bufferLength: lineBuffer.length,
+							bufferPreview: lineBuffer.slice(0, 100),
+						},
+					);
+				}
+			}
+
+			if (code !== 0 && !isResponseClosed) {
+				const errorParts = [`CLI exited with code ${code}`];
+				if (signal) errorParts.push(`signal: ${signal}`);
+				if (stderrOutput) errorParts.push(stderrOutput.trim());
+
+				safeSendEvent("error", {
+					error: errorParts.join(" - "),
+					code: "CLI_EXIT_ERROR",
+				});
+			}
+
+			safeSendEvent("done", { code, signal });
+			isResponseClosed = true;
+			res.end();
+		});
+
+		claude.on("error", (error) => {
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+				timeoutId = undefined;
+			}
+
+			logger.error("Claude CLI spawn error", { error: error.message });
 			safeSendEvent("error", {
-				error: errorParts.join(" - "),
-				code: "CLI_EXIT_ERROR",
+				error: error.message,
+				code: "SPAWN_ERROR",
 			});
-		}
-
-		safeSendEvent("done", { code, signal });
-		isResponseClosed = true;
-		res.end();
-	});
-
-	claude.on("error", (error) => {
-		if (timeoutId) {
-			clearTimeout(timeoutId);
-			timeoutId = undefined;
-		}
-
-		logger.error("Claude CLI spawn error", { error: error.message });
-		safeSendEvent("error", {
-			error: error.message,
-			code: "SPAWN_ERROR",
+			safeSendEvent("done", {
+				code: null,
+				signal: null,
+				reason: "spawn_error",
+			});
+			isResponseClosed = true;
+			res.end();
 		});
-		safeSendEvent("done", { code: null, signal: null, reason: "spawn_error" });
-		isResponseClosed = true;
-		res.end();
-	});
 
-	// Handle client disconnect - use res.on("close") for SSE
-	// Note: req.on("close") fires immediately in some Express configurations
-	res.on("close", () => {
-		logger.info("Response closed event fired", {
-			cliExitCode: claude.exitCode,
-			cliKilled: claude.killed,
+		// Handle client disconnect - use res.on("close") for SSE
+		// Note: req.on("close") fires immediately in some Express configurations
+		res.on("close", () => {
+			logger.info("Response closed event fired", {
+				cliExitCode: claude.exitCode,
+				cliKilled: claude.killed,
+			});
+			isResponseClosed = true;
+			cleanup("client_disconnect");
 		});
-		isResponseClosed = true;
-		cleanup("client_disconnect");
-	});
 
-	claude.stdin.end();
-});
+		claude.stdin.end();
+	}),
+);
 
 /**
  * Builds CLI arguments for streaming mode.

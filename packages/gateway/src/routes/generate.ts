@@ -1,5 +1,6 @@
 import { type Request, type Response, Router } from "express";
 import { ClaudeCliError, executeClaudeCli } from "../cli.js";
+import { withConcurrencyLimit } from "../concurrency.js";
 import { logger } from "../logger.js";
 import {
 	type ErrorResponse,
@@ -18,46 +19,52 @@ const router: Router = Router();
  */
 router.post(
 	"/generate-text",
-	async (req: Request, res: Response<GenerateTextResponse | ErrorResponse>) => {
-		const parseResult = generateTextRequestSchema.safeParse(req.body);
+	withConcurrencyLimit(
+		"nonStreaming",
+		async (
+			req: Request,
+			res: Response<GenerateTextResponse | ErrorResponse>,
+		) => {
+			const parseResult = generateTextRequestSchema.safeParse(req.body);
 
-		if (!parseResult.success) {
-			res.status(400).json({
-				error: "Invalid request body",
-				code: "VALIDATION_ERROR",
-				rawText: JSON.stringify(parseResult.error.issues),
-			});
-			return;
-		}
+			if (!parseResult.success) {
+				res.status(400).json({
+					error: "Invalid request body",
+					code: "VALIDATION_ERROR",
+					rawText: JSON.stringify(parseResult.error.issues),
+				});
+				return;
+			}
 
-		const { prompt, system, sessionId, maxTokens, model, userEmail } =
-			parseResult.data;
+			const { prompt, system, sessionId, maxTokens, model, userEmail } =
+				parseResult.data;
 
-		logger.info("generate-text", {
-			model: model || "default",
-			hasSystem: !!system,
-			promptLength: prompt.length,
-		});
-
-		try {
-			const result = await executeClaudeCli({
-				prompt,
-				system,
-				sessionId,
-				maxTokens,
-				model,
-				userEmail,
+			logger.info("generate-text", {
+				model: model || "default",
+				hasSystem: !!system,
+				promptLength: prompt.length,
 			});
 
-			res.json({
-				text: result.text,
-				usage: result.usage,
-				sessionId: result.sessionId,
-			});
-		} catch (error) {
-			handleCliError(error, res);
-		}
-	},
+			try {
+				const result = await executeClaudeCli({
+					prompt,
+					system,
+					sessionId,
+					maxTokens,
+					model,
+					userEmail,
+				});
+
+				res.json({
+					text: result.text,
+					usage: result.usage,
+					sessionId: result.sessionId,
+				});
+			} catch (error) {
+				handleCliError(error, res);
+			}
+		},
+	),
 );
 
 /**
@@ -68,66 +75,69 @@ router.post(
  */
 router.post(
 	"/generate-object",
-	async (
-		req: Request,
-		res: Response<GenerateObjectResponse | ErrorResponse>,
-	) => {
-		const parseResult = generateObjectRequestSchema.safeParse(req.body);
+	withConcurrencyLimit(
+		"nonStreaming",
+		async (
+			req: Request,
+			res: Response<GenerateObjectResponse | ErrorResponse>,
+		) => {
+			const parseResult = generateObjectRequestSchema.safeParse(req.body);
 
-		if (!parseResult.success) {
-			res.status(400).json({
-				error: "Invalid request body",
-				code: "VALIDATION_ERROR",
-				rawText: JSON.stringify(parseResult.error.issues),
+			if (!parseResult.success) {
+				res.status(400).json({
+					error: "Invalid request body",
+					code: "VALIDATION_ERROR",
+					rawText: JSON.stringify(parseResult.error.issues),
+				});
+				return;
+			}
+
+			const { prompt, system, schema, sessionId, maxTokens, model, userEmail } =
+				parseResult.data;
+
+			logger.info("generate-object", {
+				model: model || "default",
+				hasSystem: !!system,
+				promptLength: prompt.length,
 			});
-			return;
-		}
 
-		const { prompt, system, schema, sessionId, maxTokens, model, userEmail } =
-			parseResult.data;
-
-		logger.info("generate-object", {
-			model: model || "default",
-			hasSystem: !!system,
-			promptLength: prompt.length,
-		});
-
-		// Build enhanced prompt that instructs Claude to output JSON matching schema
-		const schemaString = JSON.stringify(schema, null, 2);
-		const enhancedPrompt = `${prompt}
+			// Build enhanced prompt that instructs Claude to output JSON matching schema
+			const schemaString = JSON.stringify(schema, null, 2);
+			const enhancedPrompt = `${prompt}
 
 IMPORTANT: You MUST respond with ONLY valid JSON that matches this schema. No markdown, no explanations, just the JSON object.
 
 JSON Schema:
 ${schemaString}`;
 
-		const enhancedSystem = system
-			? `${system}\n\nYou are a JSON generator. Always respond with valid JSON matching the provided schema.`
-			: "You are a JSON generator. Always respond with valid JSON matching the provided schema.";
+			const enhancedSystem = system
+				? `${system}\n\nYou are a JSON generator. Always respond with valid JSON matching the provided schema.`
+				: "You are a JSON generator. Always respond with valid JSON matching the provided schema.";
 
-		try {
-			const result = await executeClaudeCli({
-				prompt: enhancedPrompt,
-				system: enhancedSystem,
-				sessionId,
-				maxTokens,
-				model,
-				userEmail,
-			});
+			try {
+				const result = await executeClaudeCli({
+					prompt: enhancedPrompt,
+					system: enhancedSystem,
+					sessionId,
+					maxTokens,
+					model,
+					userEmail,
+				});
 
-			// Parse the JSON response
-			const parsedObject = parseJsonResponse(result.text);
+				// Parse the JSON response
+				const parsedObject = parseJsonResponse(result.text);
 
-			res.json({
-				object: parsedObject,
-				rawText: result.text,
-				usage: result.usage,
-				sessionId: result.sessionId,
-			});
-		} catch (error) {
-			handleCliError(error, res);
-		}
-	},
+				res.json({
+					object: parsedObject,
+					rawText: result.text,
+					usage: result.usage,
+					sessionId: result.sessionId,
+				});
+			} catch (error) {
+				handleCliError(error, res);
+			}
+		},
+	),
 );
 
 /**

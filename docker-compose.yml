@@ -17,6 +17,9 @@ services:
       # Claude authentication
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      # Concurrency limits
+      KOINE_MAX_STREAMING_CONCURRENT: ${KOINE_MAX_STREAMING_CONCURRENT:-3}
+      KOINE_MAX_NONSTREAMING_CONCURRENT: ${KOINE_MAX_NONSTREAMING_CONCURRENT:-5}
     volumes:
       # Named volume for Claude CLI data
       - koine-data:/home/bun/.claude

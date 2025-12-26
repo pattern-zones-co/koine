@@ -25,3 +25,17 @@ curl -H "Authorization: Bearer $CLAUDE_CODE_GATEWAY_API_KEY" \
 ## Sessions
 
 Omit `sessionId` to start new. Include previous `sessionId` to continue conversation.
+
+## Concurrency Limits
+
+The gateway limits concurrent requests to prevent resource exhaustion. When limits are exceeded:
+
+- **Status**: `429 Too Many Requests`
+- **Header**: `Retry-After: 5`
+- **Body**: `{ "error": "Concurrency limit exceeded", "code": "CONCURRENCY_LIMIT_ERROR" }`
+
+Default limits:
+- `/stream`: 3 concurrent requests
+- `/generate-text`, `/generate-object`: 5 concurrent requests
+
+See [Environment Variables](environment-variables.md) to configure limits.

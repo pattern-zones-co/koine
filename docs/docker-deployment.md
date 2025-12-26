@@ -46,6 +46,18 @@ This builds locally from the Dockerfile. See [CONTRIBUTING.md](../CONTRIBUTING.m
 
 See [`docker-compose.yml`](../docker-compose.yml) and [`Dockerfile`](../Dockerfile) in the repo root. These can be adapted for your orchestration setup.
 
+### Concurrency Limits
+
+The gateway limits concurrent requests to prevent resource exhaustion. Configure via environment variables:
+
+```yaml
+environment:
+  KOINE_MAX_STREAMING_CONCURRENT: 3      # default
+  KOINE_MAX_NONSTREAMING_CONCURRENT: 5   # default
+```
+
+See [Environment Variables](environment-variables.md) for all configuration options.
+
 ## Security
 
 The included configuration uses:

@@ -78,6 +78,26 @@ Creates a client instance with the given configuration. The config is validated 
 | `KoineUsage` | Token usage information |
 | `KoineError` | Error class with code and raw_text |
 
+## Error Handling & Retries
+
+The SDK does not automatically retry failed requests. When the gateway returns `429 Too Many Requests` (concurrency limit exceeded), your application should implement retry logic:
+
+```python
+import asyncio
+from koine_sdk import KoineError
+
+async def generate_with_retry(prompt: str, max_retries: int = 3):
+    for i in range(max_retries):
+        try:
+            return await koine.generate_text(prompt=prompt)
+        except KoineError as e:
+            if e.code == "CONCURRENCY_LIMIT_ERROR":
+                await asyncio.sleep(1 * (i + 1))  # Exponential backoff
+                continue
+            raise
+    raise Exception("Max retries exceeded")
+```
+
 ## Documentation
 
 See the [SDK Guide](https://github.com/pattern-zones-co/koine/blob/main/docs/sdk-guide.md) for:

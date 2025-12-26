@@ -161,6 +161,7 @@ components:
             - CLI_EXIT_ERROR
             - SPAWN_ERROR
             - PARSE_ERROR
+            - CONCURRENCY_LIMIT_ERROR
         rawText:
           type: string
       required:
@@ -183,6 +184,36 @@ components:
           type: string
         error:
           type: string
+        concurrency:
+          type: object
+          properties:
+            streaming:
+              type: object
+              properties:
+                active:
+                  type: integer
+                  minimum: 0
+                limit:
+                  type: integer
+                  minimum: 0
+              required:
+                - active
+                - limit
+            nonStreaming:
+              type: object
+              properties:
+                active:
+                  type: integer
+                  minimum: 0
+                limit:
+                  type: integer
+                  minimum: 0
+              required:
+                - active
+                - limit
+          required:
+            - streaming
+            - nonStreaming
       required:
         - status
         - claudeCli
@@ -213,6 +244,36 @@ paths:
                     type: string
                   error:
                     type: string
+                  concurrency:
+                    type: object
+                    properties:
+                      streaming:
+                        type: object
+                        properties:
+                          active:
+                            type: integer
+                            minimum: 0
+                          limit:
+                            type: integer
+                            minimum: 0
+                        required:
+                          - active
+                          - limit
+                      nonStreaming:
+                        type: object
+                        properties:
+                          active:
+                            type: integer
+                            minimum: 0
+                          limit:
+                            type: integer
+                            minimum: 0
+                        required:
+                          - active
+                          - limit
+                    required:
+                      - streaming
+                      - nonStreaming
                 required:
                   - status
                   - claudeCli
@@ -234,6 +295,36 @@ paths:
                     type: string
                   error:
                     type: string
+                  concurrency:
+                    type: object
+                    properties:
+                      streaming:
+                        type: object
+                        properties:
+                          active:
+                            type: integer
+                            minimum: 0
+                          limit:
+                            type: integer
+                            minimum: 0
+                        required:
+                          - active
+                          - limit
+                      nonStreaming:
+                        type: object
+                        properties:
+                          active:
+                            type: integer
+                            minimum: 0
+                          limit:
+                            type: integer
+                            minimum: 0
+                        required:
+                          - active
+                          - limit
+                    required:
+                      - streaming
+                      - nonStreaming
                 required:
                   - status
                   - claudeCli

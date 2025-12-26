@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { Router } from "express";
+import { getStatus as getConcurrencyStatus } from "../concurrency.js";
 
 const router: Router = Router();
 
@@ -11,11 +12,14 @@ const router: Router = Router();
 router.get("/health", async (_req, res) => {
 	const claudeAvailable = await checkClaudeCliAvailable();
 
+	const concurrency = getConcurrencyStatus();
+
 	if (claudeAvailable) {
 		res.json({
 			status: "healthy",
 			claudeCli: "available",
 			timestamp: new Date().toISOString(),
+			concurrency,
 		});
 	} else {
 		res.status(503).json({
@@ -23,6 +27,7 @@ router.get("/health", async (_req, res) => {
 			claudeCli: "unavailable",
 			timestamp: new Date().toISOString(),
 			error: "Claude CLI not found or not accessible",
+			concurrency,
 		});
 	}
 });

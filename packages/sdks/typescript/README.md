@@ -76,6 +76,27 @@ Creates a client instance with the given configuration. The config is validated 
 | `KoineError` | Error class with typed `code` property |
 | `KoineErrorCode` | Union type of all possible error codes |
 
+## Error Handling & Retries
+
+The SDK does not automatically retry failed requests. When the gateway returns `429 Too Many Requests` (concurrency limit exceeded), your application should implement retry logic:
+
+```typescript
+async function generateWithRetry(prompt: string, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await koine.generateText({ prompt });
+    } catch (error) {
+      if (error instanceof KoineError && error.code === 'CONCURRENCY_LIMIT_ERROR') {
+        await new Promise(r => setTimeout(r, 1000 * (i + 1))); // Exponential backoff
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+```
+
 ## Documentation
 
 See the [SDK Guide](https://github.com/pattern-zones-co/koine/blob/main/docs/sdk-guide.md) for:

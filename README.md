@@ -73,6 +73,7 @@ See [Docker Deployment](docs/docker-deployment.md) for docker-compose, version p
 - **TypeScript & Python SDKs**: full type safety and async support
 - **Extensible**: add custom [skills and slash commands](docs/skills-and-commands.md)
 - **Docker-first**: containerized deployment with security isolation
+- **Concurrency limits**: configurable limits prevent resource exhaustion (clients handle retries)
 
 ## SDK Usage
 
