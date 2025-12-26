@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.0.3](https://github.com/pattern-zones-co/koine/compare/v2.0.2...v2.0.3) (2025-12-26)
+
+
+### Documentation
+
+* add PNG logo to README ([bff3527](https://github.com/pattern-zones-co/koine/commit/bff3527107fedb1634f40d7edbe41bc015bf3135))
+* fix api-reference.md inconsistencies ([8052a2c](https://github.com/pattern-zones-co/koine/commit/8052a2c10b9b86d295ed1e674d9917c74af01395))
+* left-align logo ([0d8bbac](https://github.com/pattern-zones-co/koine/commit/0d8bbacde6636ede4bb4988ce88ac4b4be1593b3))
+* replace header with ASCII art logo ([8591683](https://github.com/pattern-zones-co/koine/commit/8591683dde4642f4a1117c11cc687bff32fdba72))
+* revert to ASCII art logo ([7a72d3d](https://github.com/pattern-zones-co/koine/commit/7a72d3d950f1379a85b4a68738e39037456e8104))
+* revert to simple heading, remove logo ([9e658f7](https://github.com/pattern-zones-co/koine/commit/9e658f747fa3d86461badd8232eeb9c0e7fc7e78))
+* update SDK examples to factory pattern, add example READMEs ([50bbfcb](https://github.com/pattern-zones-co/koine/commit/50bbfcb2b0caad6e005c3eeb705569a9715ed04f))
+* use pre tag for tighter ASCII logo rendering ([ce5548c](https://github.com/pattern-zones-co/koine/commit/ce5548ce2335975b7062b56cc54a69ced93ec307))
+
 ## [2.0.2](https://github.com/pattern-zones-co/koine/compare/v2.0.1...v2.0.2) (2025-12-25)
 
 

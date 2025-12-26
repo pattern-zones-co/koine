@@ -18,7 +18,7 @@ Example:
 """
 
 # x-release-please-start-version
-__version__ = "2.0.2"
+__version__ = "2.0.3"
 # x-release-please-end
 
 # Client factory (primary API)
