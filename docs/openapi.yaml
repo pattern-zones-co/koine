@@ -4,8 +4,8 @@ info:
   version: 1.0.0
   description: HTTP gateway service for Claude Code CLI. Provides REST endpoints for text generation, structured object generation, and streaming responses.
   license:
-    name: AGPL-3.0
-    url: https://www.gnu.org/licenses/agpl-3.0.en.html
+    name: AGPL-3.0-only OR LicenseRef-Commercial
+    url: https://github.com/pattern-zones-co/koine/blob/main/LICENSE
   contact:
     name: Pattern Zones Co
     url: https://github.com/pattern-zones-co/koine
