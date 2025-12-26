@@ -1,10 +1,10 @@
 # API Reference
 
-The gateway provides interactive API documentation at [`/docs`](http://localhost:3100/docs) powered by [Scalar](https://scalar.com/). The raw OpenAPI 3.1 specification is available at [`/openapi.yaml`](http://localhost:3100/openapi.yaml).
+The gateway provides interactive API documentation at the `/docs` endpoint powered by [Scalar](https://scalar.com/). The raw OpenAPI 3.1 specification is available at the `/openapi.yaml` endpoint.
 
 ## Authentication
 
-All endpoints except `/health` require Bearer token authentication:
+All endpoints except `/health`, `/docs`, and `/openapi.yaml` require Bearer token authentication:
 
 ```bash
 curl -H "Authorization: Bearer $CLAUDE_CODE_GATEWAY_API_KEY" \
