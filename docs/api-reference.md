@@ -1,6 +1,6 @@
 # API Reference
 
-The gateway provides interactive API documentation at the `/docs` endpoint powered by [Scalar](https://scalar.com/). The raw OpenAPI 3.1 specification is available at the `/openapi.yaml` endpoint.
+The gateway provides interactive API documentation at the `/docs` endpoint powered by [Scalar](https://scalar.com/). The raw OpenAPI 3.1 specification is available at the `/openapi.yaml` endpoint (see [openapi.yaml](openapi.yaml) for the full specification).
 
 ## Authentication
 
