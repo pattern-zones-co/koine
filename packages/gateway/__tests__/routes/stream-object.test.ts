@@ -837,5 +837,258 @@ describe("Stream Object Route", () => {
 				(objectEvent?.data as { object: Array<{ name: string }> }).object,
 			).toEqual([{ name: "Alice" }, { name: "Bob" }]);
 		});
+
+		it("emits warning event when using markdown-block extraction", async () => {
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			const app = createTestApp();
+			const responsePromise = request(app)
+				.post("/stream-object")
+				.send({ prompt: "Extract", schema: validSchema });
+
+			afterSpawnCalled(mockSpawn, () => {
+				// Claude wraps JSON in markdown - this triggers fallback extraction
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(
+						`${createStreamEventDelta('```json\n{"name": "FallbackTest", "age": 30}\n```')}\n`,
+					),
+				);
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamResultMessage()}\n`),
+				);
+				mockProc.emit("close", 0, null);
+			});
+
+			const res = await responsePromise;
+			const events = parseSSEResponse(res.text);
+
+			// Should emit warning about fallback extraction
+			const warningEvent = events.find((e) => e.event === "warning");
+			expect(warningEvent).toBeDefined();
+			expect((warningEvent?.data as { code: string }).code).toBe(
+				"EXTRACTION_FALLBACK",
+			);
+			expect((warningEvent?.data as { message: string }).message).toContain(
+				"markdown-block",
+			);
+
+			// Object should still be extracted correctly
+			const objectEvent = events.find((e) => e.event === "object");
+			expect(objectEvent).toBeDefined();
+			expect(
+				(objectEvent?.data as { object: { name: string } }).object.name,
+			).toBe("FallbackTest");
+		});
+
+		it("emits warning event when using object-extraction strategy", async () => {
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			const app = createTestApp();
+			const responsePromise = request(app)
+				.post("/stream-object")
+				.send({ prompt: "Extract", schema: validSchema });
+
+			afterSpawnCalled(mockSpawn, () => {
+				// Text with surrounding content triggers object-extraction fallback
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(
+						`${createStreamEventDelta('Sure! Here is the result: {"name": "ObjectExtract", "age": 40} Hope this helps!')}\n`,
+					),
+				);
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamResultMessage()}\n`),
+				);
+				mockProc.emit("close", 0, null);
+			});
+
+			const res = await responsePromise;
+			const events = parseSSEResponse(res.text);
+
+			// Should emit warning about fallback extraction
+			const warningEvent = events.find((e) => e.event === "warning");
+			expect(warningEvent).toBeDefined();
+			expect((warningEvent?.data as { code: string }).code).toBe(
+				"EXTRACTION_FALLBACK",
+			);
+			expect((warningEvent?.data as { message: string }).message).toContain(
+				"object-extraction",
+			);
+		});
+
+		it("emits warning event when using array-extraction strategy", async () => {
+			const arraySchema = {
+				type: "array",
+				items: {
+					type: "object",
+					properties: { name: { type: "string" } },
+				},
+			};
+
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			const app = createTestApp();
+			const responsePromise = request(app)
+				.post("/stream-object")
+				.send({ prompt: "List people", schema: arraySchema });
+
+			afterSpawnCalled(mockSpawn, () => {
+				// Text with surrounding content and array triggers array-extraction
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(
+						`${createStreamEventDelta('Here are the people: [{"name": "ArrayTest1"}, {"name": "ArrayTest2"}] Done!')}\n`,
+					),
+				);
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamResultMessage()}\n`),
+				);
+				mockProc.emit("close", 0, null);
+			});
+
+			const res = await responsePromise;
+			const events = parseSSEResponse(res.text);
+
+			// Should emit warning about fallback extraction
+			const warningEvent = events.find((e) => e.event === "warning");
+			expect(warningEvent).toBeDefined();
+			expect((warningEvent?.data as { code: string }).code).toBe(
+				"EXTRACTION_FALLBACK",
+			);
+			expect((warningEvent?.data as { message: string }).message).toContain(
+				"array-extraction",
+			);
+
+			// Array should still be extracted correctly
+			const objectEvent = events.find((e) => e.event === "object");
+			expect(objectEvent).toBeDefined();
+			expect(
+				(objectEvent?.data as { object: Array<{ name: string }> }).object,
+			).toEqual([{ name: "ArrayTest1" }, { name: "ArrayTest2" }]);
+		});
+
+		it("emits warning when clean exit has unparseable buffer data", async () => {
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			const app = createTestApp();
+			const responsePromise = request(app)
+				.post("/stream-object")
+				.send({ prompt: "Hello", schema: validSchema });
+
+			afterSpawnCalled(mockSpawn, () => {
+				// Stream valid JSON first
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(
+						`${createStreamEventDelta('{"name": "Test", "age": 1}')}\n`,
+					),
+				);
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamResultMessage()}\n`),
+				);
+				// Leave garbage in buffer (no newline - stays in buffer)
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from("garbage data without newline"),
+				);
+				// Clean exit (code=0, signal=null) with garbage in buffer
+				mockProc.emit("close", 0, null);
+			});
+
+			const res = await responsePromise;
+			const events = parseSSEResponse(res.text);
+
+			// Should emit warning about unparseable buffer data
+			const warningEvent = events.find((e) => e.event === "warning");
+			expect(warningEvent).toBeDefined();
+			expect((warningEvent?.data as { code: string }).code).toBe(
+				"BUFFER_PARSE_WARNING",
+			);
+		});
+
+		it("handles interrupt exit code with buffer data gracefully", async () => {
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			const app = createTestApp();
+			const responsePromise = request(app)
+				.post("/stream-object")
+				.send({ prompt: "Hello", schema: validSchema });
+
+			afterSpawnCalled(mockSpawn, () => {
+				// Stream valid JSON first
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(
+						`${createStreamEventDelta('{"name": "Test", "age": 1}')}\n`,
+					),
+				);
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamResultMessage()}\n`),
+				);
+				// Leave incomplete data in buffer (no newline)
+				mockProc.stdout.emit("data", Buffer.from("incomplete data"));
+				// Non-zero exit (interrupt) - buffer warning should NOT be emitted
+				mockProc.emit("close", 1, "SIGTERM");
+			});
+
+			const res = await responsePromise;
+			const events = parseSSEResponse(res.text);
+
+			// Should NOT emit warning for interrupt (non-zero exit code is expected)
+			const warningEvent = events.find(
+				(e) =>
+					e.event === "warning" &&
+					(e.data as { code: string }).code === "BUFFER_PARSE_WARNING",
+			);
+			expect(warningEvent).toBeUndefined();
+
+			// Should emit CLI_EXIT_ERROR for non-zero exit
+			const errorEvent = events.find((e) => e.event === "error");
+			expect(errorEvent).toBeDefined();
+			expect((errorEvent?.data as { code: string }).code).toBe(
+				"CLI_EXIT_ERROR",
+			);
+		});
+
+		it("handles parse error on final object in close handler", async () => {
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			const app = createTestApp();
+			const responsePromise = request(app)
+				.post("/stream-object")
+				.send({ prompt: "Hello", schema: validSchema });
+
+			afterSpawnCalled(mockSpawn, () => {
+				// Stream completely malformed JSON that can't be extracted
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamEventDelta("not json at all {{{{")}\n`),
+				);
+				// Send result without newline - triggers close handler parsing
+				const resultMessage = createStreamResultMessage();
+				mockProc.stdout.emit("data", Buffer.from(resultMessage));
+				mockProc.emit("close", 0, null);
+			});
+
+			const res = await responsePromise;
+			const events = parseSSEResponse(res.text);
+
+			// Should emit parse error
+			const errorEvent = events.find((e) => e.event === "error");
+			expect(errorEvent).toBeDefined();
+			expect((errorEvent?.data as { code: string }).code).toBe("PARSE_ERROR");
+		});
 	});
 });
