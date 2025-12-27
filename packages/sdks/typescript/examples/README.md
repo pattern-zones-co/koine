@@ -21,10 +21,11 @@
 From the SDK directory (`packages/sdks/typescript`):
 
 ```bash
-bun run example:hello        # Basic text generation
-bun run example:recipe       # Structured output with Zod
-bun run example:stream       # Real-time streaming
-bun run example:conversation # Multi-turn sessions
+bun run example:hello         # Basic text generation
+bun run example:recipe        # Structured output with Zod
+bun run example:stream        # Real-time streaming
+bun run example:stream-object # Streaming structured output
+bun run example:conversation  # Multi-turn sessions
 ```
 
 ## Examples
@@ -34,4 +35,5 @@ bun run example:conversation # Multi-turn sessions
 | `hello.ts` | Basic text generation |
 | `extract-recipe.ts` | Structured output with Zod schemas |
 | `stream.ts` | Real-time streaming with async iterators |
+| `stream-object.ts` | Streaming structured output with partial updates |
 | `conversation.ts` | Multi-turn session persistence |

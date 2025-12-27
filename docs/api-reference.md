@@ -20,7 +20,8 @@ curl -H "Authorization: Bearer $CLAUDE_CODE_GATEWAY_API_KEY" \
 | GET | `/openapi.yaml` | OpenAPI spec (no auth) |
 | POST | `/generate-text` | Generate text |
 | POST | `/generate-object` | Extract structured JSON |
-| POST | `/stream` | Stream via SSE |
+| POST | `/stream` | Stream text via SSE |
+| POST | `/stream-object` | Stream structured JSON via SSE |
 
 ## Sessions
 
@@ -35,7 +36,7 @@ The gateway limits concurrent requests to prevent resource exhaustion. When limi
 - **Body**: `{ "error": "Concurrency limit exceeded", "code": "CONCURRENCY_LIMIT_ERROR" }`
 
 Default limits:
-- `/stream`: 3 concurrent requests
+- `/stream`, `/stream-object`: 3 concurrent requests
 - `/generate-text`, `/generate-object`: 5 concurrent requests
 
 See [Environment Variables](environment-variables.md) to configure limits.
