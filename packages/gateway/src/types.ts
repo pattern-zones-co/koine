@@ -12,6 +12,8 @@ const baseRequestSchema = z.object({
 	prompt: z.string(),
 	sessionId: z.string().optional(),
 	model: z.string().optional(),
+	/** Tools to allow for this request. Intersects with gateway-level allowed tools. */
+	allowedTools: z.array(z.string()).optional(),
 });
 
 export const generateTextRequestSchema = baseRequestSchema.extend({

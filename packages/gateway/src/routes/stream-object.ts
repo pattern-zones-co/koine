@@ -4,7 +4,9 @@ import { Allow, parse } from "partial-json";
 import { v4 as uuidv4 } from "uuid";
 import { buildClaudeEnv } from "../cli.js";
 import { withConcurrencyLimit } from "../concurrency.js";
+import { gatewayConfig } from "../config.js";
 import { logger } from "../logger.js";
+import { resolveAllowedTools } from "../tools.js";
 import {
 	type CliUsageInfo,
 	createUsageInfo,
@@ -80,7 +82,21 @@ router.post(
 			return;
 		}
 
-		const { prompt, system, sessionId, model, schema } = parseResult.data;
+		const {
+			prompt,
+			system,
+			sessionId,
+			model,
+			schema,
+			allowedTools: requestAllowedTools,
+		} = parseResult.data;
+
+		// Resolve allowed tools: intersection of gateway config and request
+		const allowedTools = resolveAllowedTools(
+			gatewayConfig.allowedTools,
+			gatewayConfig.disallowedTools,
+			requestAllowedTools,
+		);
 
 		// Set up SSE headers
 		res.setHeader("Content-Type", "text/event-stream");
@@ -106,6 +122,7 @@ router.post(
 			sessionId,
 			model,
 			schema,
+			allowedTools,
 		});
 
 		logger.info("Spawning Claude CLI for stream-object", { args });
@@ -610,6 +627,7 @@ function buildStreamObjectArgs(options: {
 	sessionId?: string;
 	model?: string;
 	schema: Record<string, unknown>;
+	allowedTools?: string[];
 }): string[] {
 	// Build enhanced prompt that instructs Claude to output JSON matching schema
 	const schemaString = JSON.stringify(options.schema, null, 2);
@@ -644,6 +662,11 @@ ${schemaString}`;
 	// Resume specific session by ID
 	if (options.sessionId) {
 		args.push("--resume", options.sessionId);
+	}
+
+	// Allowed tools - each tool is a separate argument after --allowedTools
+	if (options.allowedTools?.length) {
+		args.push("--allowedTools", ...options.allowedTools);
 	}
 
 	args.push(enhancedPrompt);

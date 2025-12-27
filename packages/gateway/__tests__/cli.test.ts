@@ -158,6 +158,47 @@ describe("CLI Module", () => {
 			);
 		});
 
+		it("includes --allowedTools when allowedTools option is provided", async () => {
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			executeClaudeCli({
+				prompt: "Test",
+				allowedTools: ["Read", "Glob", "Bash(git log:*)"],
+			});
+
+			expect(mockSpawn).toHaveBeenCalledWith(
+				"claude",
+				expect.arrayContaining([
+					"--allowedTools",
+					"Read",
+					"Glob",
+					"Bash(git log:*)",
+				]),
+				expect.any(Object),
+			);
+		});
+
+		it("does not include --allowedTools when empty array", async () => {
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			executeClaudeCli({ prompt: "Test", allowedTools: [] });
+
+			const calledArgs = mockSpawn.mock.calls[0][1] as string[];
+			expect(calledArgs).not.toContain("--allowedTools");
+		});
+
+		it("does not include --allowedTools when undefined", async () => {
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			executeClaudeCli({ prompt: "Test" });
+
+			const calledArgs = mockSpawn.mock.calls[0][1] as string[];
+			expect(calledArgs).not.toContain("--allowedTools");
+		});
+
 		it("throws ClaudeCliError on non-zero exit code", async () => {
 			const mockProc = createMockChildProcess();
 			mockSpawn.mockReturnValue(mockProc as never);

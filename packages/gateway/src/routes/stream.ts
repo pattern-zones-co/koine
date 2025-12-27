@@ -3,7 +3,9 @@ import { type Request, type Response, Router } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { buildClaudeEnv } from "../cli.js";
 import { withConcurrencyLimit } from "../concurrency.js";
+import { gatewayConfig } from "../config.js";
 import { logger } from "../logger.js";
+import { resolveAllowedTools } from "../tools.js";
 import {
 	type CliUsageInfo,
 	createUsageInfo,
@@ -77,7 +79,20 @@ router.post(
 			return;
 		}
 
-		const { prompt, system, sessionId, model } = parseResult.data;
+		const {
+			prompt,
+			system,
+			sessionId,
+			model,
+			allowedTools: requestAllowedTools,
+		} = parseResult.data;
+
+		// Resolve allowed tools: intersection of gateway config and request
+		const allowedTools = resolveAllowedTools(
+			gatewayConfig.allowedTools,
+			gatewayConfig.disallowedTools,
+			requestAllowedTools,
+		);
 
 		// Set up SSE headers
 		res.setHeader("Content-Type", "text/event-stream");
@@ -97,7 +112,13 @@ router.post(
 		let timeoutId: NodeJS.Timeout | undefined;
 
 		// Build CLI arguments
-		const args = buildStreamArgs({ prompt, system, sessionId, model });
+		const args = buildStreamArgs({
+			prompt,
+			system,
+			sessionId,
+			model,
+			allowedTools,
+		});
 
 		logger.info("Spawning Claude CLI for stream", { args });
 
@@ -336,6 +357,7 @@ function buildStreamArgs(options: {
 	system?: string;
 	sessionId?: string;
 	model?: string;
+	allowedTools?: string[];
 }): string[] {
 	// --verbose is required for stream-json output with --print
 	// --include-partial-messages enables progressive token streaming
@@ -359,6 +381,11 @@ function buildStreamArgs(options: {
 	// Resume specific session by ID
 	if (options.sessionId) {
 		args.push("--resume", options.sessionId);
+	}
+
+	// Allowed tools - each tool is a separate argument after --allowedTools
+	if (options.allowedTools?.length) {
+		args.push("--allowedTools", ...options.allowedTools);
 	}
 
 	args.push(options.prompt);

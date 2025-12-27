@@ -26,6 +26,7 @@ async def generate_object(
     schema: type[T],
     system: str | None = None,
     session_id: str | None = None,
+    allowed_tools: list[str] | None = None,
 ) -> GenerateObjectResult[T]:
     """Generate structured JSON response from Koine gateway service.
 
@@ -38,6 +39,7 @@ async def generate_object(
         schema: Pydantic model class for response validation
         system: Optional system prompt
         session_id: Optional session ID for conversation continuity
+        allowed_tools: Optional list of tools to allow for this request
 
     Returns:
         GenerateObjectResult with validated object, raw_text, usage, and session_id
@@ -62,6 +64,7 @@ async def generate_object(
                 schema=json_schema,
                 sessionId=session_id,
                 model=config.model,
+                allowedTools=allowed_tools,
             ),
         )
 

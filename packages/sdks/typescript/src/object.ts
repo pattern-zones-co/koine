@@ -38,6 +38,7 @@ export async function generateObject<T>(
 		prompt: string;
 		schema: z.ZodSchema<T>;
 		sessionId?: string;
+		allowedTools?: string[];
 		signal?: AbortSignal;
 	},
 ): Promise<{
@@ -68,6 +69,7 @@ export async function generateObject<T>(
 				schema: jsonSchema,
 				sessionId: options.sessionId,
 				model: config.model,
+				allowedTools: options.allowedTools,
 			}),
 			signal: createAbortSignal(config.timeout, options.signal),
 		},
@@ -121,6 +123,8 @@ export interface GenerateObjectOptions<T> {
 	system?: string;
 	/** Optional session ID to continue a conversation */
 	sessionId?: string;
+	/** Optional list of tools to allow for this request */
+	allowedTools?: string[];
 	/** Optional AbortSignal for cancellation */
 	signal?: AbortSignal;
 }

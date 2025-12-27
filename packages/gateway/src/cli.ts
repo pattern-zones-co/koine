@@ -42,6 +42,8 @@ export interface ClaudeCliOptions {
 	model?: string;
 	/** JSON schema for constrained decoding (CLI enforces valid JSON output) */
 	jsonSchema?: Record<string, unknown>;
+	/** Tools to allow for this session. Each tool is passed as a separate argument. */
+	allowedTools?: string[];
 }
 
 export interface ClaudeCliResult {
@@ -195,6 +197,11 @@ function buildCliArgs(options: ClaudeCliOptions): string[] {
 	// JSON schema for constrained decoding
 	if (options.jsonSchema) {
 		args.push("--json-schema", JSON.stringify(options.jsonSchema));
+	}
+
+	// Allowed tools - each tool is a separate argument after --allowedTools
+	if (options.allowedTools?.length) {
+		args.push("--allowedTools", ...options.allowedTools);
 	}
 
 	// The prompt itself

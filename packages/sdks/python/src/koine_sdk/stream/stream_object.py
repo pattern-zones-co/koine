@@ -203,12 +203,14 @@ class HTTPObjectStreamContext(Generic[T]):
         schema: type[T],
         system: str | None,
         session_id: str | None,
+        allowed_tools: list[str] | None,
     ) -> None:
         self._config = config
         self._prompt = prompt
         self._schema = schema
         self._system = system
         self._session_id = session_id
+        self._allowed_tools = allowed_tools
         self._client: httpx.AsyncClient | None = None
         self._response: httpx.Response | None = None
 
@@ -233,6 +235,7 @@ class HTTPObjectStreamContext(Generic[T]):
                         schema=json_schema,
                         sessionId=self._session_id,
                         model=self._config.model,
+                        allowedTools=self._allowed_tools,
                     ),
                 ),
                 stream=True,
@@ -298,6 +301,7 @@ def stream_object(
     schema: type[T],
     system: str | None = None,
     session_id: str | None = None,
+    allowed_tools: list[str] | None = None,
 ) -> HTTPObjectStreamContext[T]:
     """Stream structured JSON objects from Koine gateway service via HTTP/SSE.
 
@@ -321,6 +325,7 @@ def stream_object(
         schema: Pydantic model class for response validation
         system: Optional system prompt
         session_id: Optional session ID for conversation continuity
+        allowed_tools: Optional list of tools to allow for this request
 
     Returns:
         Async context manager that yields StreamObjectResult[T]
@@ -328,4 +333,6 @@ def stream_object(
     Raises:
         KoineError: On HTTP errors, stream errors, or validation failures
     """
-    return HTTPObjectStreamContext(config, prompt, schema, system, session_id)
+    return HTTPObjectStreamContext(
+        config, prompt, schema, system, session_id, allowed_tools
+    )

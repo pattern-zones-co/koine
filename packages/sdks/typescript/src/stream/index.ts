@@ -39,6 +39,7 @@ export async function streamText(
 		system?: string;
 		prompt: string;
 		sessionId?: string;
+		allowedTools?: string[];
 		signal?: AbortSignal;
 	},
 ): Promise<KoineStreamResult> {
@@ -57,6 +58,7 @@ export async function streamText(
 				prompt: options.prompt,
 				sessionId: options.sessionId,
 				model: config.model,
+				allowedTools: options.allowedTools,
 			}),
 			signal: createAbortSignal(config.timeout, options.signal),
 		},
@@ -256,6 +258,8 @@ export interface StreamTextOptions {
 	system?: string;
 	/** Optional session ID to continue a conversation */
 	sessionId?: string;
+	/** Optional list of tools to allow for this request */
+	allowedTools?: string[];
 	/** Optional AbortSignal for cancellation */
 	signal?: AbortSignal;
 }

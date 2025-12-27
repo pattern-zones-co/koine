@@ -1,7 +1,9 @@
 import { type Request, type Response, Router } from "express";
 import { ClaudeCliError, executeClaudeCli } from "../cli.js";
 import { withConcurrencyLimit } from "../concurrency.js";
+import { gatewayConfig } from "../config.js";
 import { logger } from "../logger.js";
+import { resolveAllowedTools } from "../tools.js";
 import {
 	type ErrorResponse,
 	type GenerateObjectResponse,
@@ -36,12 +38,26 @@ router.post(
 				return;
 			}
 
-			const { prompt, system, sessionId, model } = parseResult.data;
+			const {
+				prompt,
+				system,
+				sessionId,
+				model,
+				allowedTools: requestAllowedTools,
+			} = parseResult.data;
+
+			// Resolve allowed tools: intersection of gateway config and request
+			const allowedTools = resolveAllowedTools(
+				gatewayConfig.allowedTools,
+				gatewayConfig.disallowedTools,
+				requestAllowedTools,
+			);
 
 			logger.info("generate-text", {
 				model: model || "default",
 				hasSystem: !!system,
 				promptLength: prompt.length,
+				allowedToolsCount: allowedTools?.length,
 			});
 
 			try {
@@ -50,6 +66,7 @@ router.post(
 					system,
 					sessionId,
 					model,
+					allowedTools,
 				});
 
 				res.json({
@@ -89,12 +106,27 @@ router.post(
 				return;
 			}
 
-			const { prompt, system, schema, sessionId, model } = parseResult.data;
+			const {
+				prompt,
+				system,
+				schema,
+				sessionId,
+				model,
+				allowedTools: requestAllowedTools,
+			} = parseResult.data;
+
+			// Resolve allowed tools: intersection of gateway config and request
+			const allowedTools = resolveAllowedTools(
+				gatewayConfig.allowedTools,
+				gatewayConfig.disallowedTools,
+				requestAllowedTools,
+			);
 
 			logger.info("generate-object", {
 				model: model || "default",
 				hasSystem: !!system,
 				promptLength: prompt.length,
+				allowedToolsCount: allowedTools?.length,
 			});
 
 			try {
@@ -104,6 +136,7 @@ router.post(
 					sessionId,
 					model,
 					jsonSchema: schema,
+					allowedTools,
 				});
 
 				// Parse the JSON response (CLI constrained decoding enforces valid JSON)

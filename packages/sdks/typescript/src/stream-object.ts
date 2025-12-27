@@ -75,6 +75,7 @@ export async function streamObject<T>(
 				schema: jsonSchema,
 				sessionId: options.sessionId,
 				model: config.model,
+				allowedTools: options.allowedTools,
 			}),
 			signal: createAbortSignal(config.timeout, options.signal),
 		},
@@ -307,6 +308,8 @@ export interface StreamObjectOptions<T> {
 	system?: string;
 	/** Optional session ID to continue a conversation */
 	sessionId?: string;
+	/** Optional list of tools to allow for this request */
+	allowedTools?: string[];
 	/** Optional AbortSignal for cancellation */
 	signal?: AbortSignal;
 }

@@ -21,6 +21,7 @@ async def generate_text(
     prompt: str,
     system: str | None = None,
     session_id: str | None = None,
+    allowed_tools: list[str] | None = None,
 ) -> GenerateTextResult:
     """Generate plain text response from Koine gateway service.
 
@@ -29,6 +30,7 @@ async def generate_text(
         prompt: The user prompt to send
         system: Optional system prompt
         session_id: Optional session ID for conversation continuity
+        allowed_tools: Optional list of tools to allow for this request
 
     Returns:
         GenerateTextResult with text, usage, and session_id
@@ -49,6 +51,7 @@ async def generate_text(
                 prompt=prompt,
                 sessionId=session_id,
                 model=config.model,
+                allowedTools=allowed_tools,
             ),
         )
 

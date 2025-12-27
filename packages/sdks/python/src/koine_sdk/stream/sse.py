@@ -188,11 +188,13 @@ class HTTPStreamContext:
         prompt: str,
         system: str | None,
         session_id: str | None,
+        allowed_tools: list[str] | None,
     ) -> None:
         self._config = config
         self._prompt = prompt
         self._system = system
         self._session_id = session_id
+        self._allowed_tools = allowed_tools
         self._client: httpx.AsyncClient | None = None
         self._response: httpx.Response | None = None
 
@@ -212,6 +214,7 @@ class HTTPStreamContext:
                     prompt=self._prompt,
                     sessionId=self._session_id,
                     model=self._config.model,
+                    allowedTools=self._allowed_tools,
                 ),
             ),
             stream=True,
@@ -264,6 +267,7 @@ def stream_text(
     prompt: str,
     system: str | None = None,
     session_id: str | None = None,
+    allowed_tools: list[str] | None = None,
 ) -> HTTPStreamContext:
     """Stream text response from Koine gateway service via HTTP/SSE.
 
@@ -286,6 +290,7 @@ def stream_text(
         prompt: The user prompt to send
         system: Optional system prompt
         session_id: Optional session ID for conversation continuity
+        allowed_tools: Optional list of tools to allow for this request
 
     Returns:
         Async context manager that yields StreamTextResult
@@ -293,4 +298,4 @@ def stream_text(
     Raises:
         KoineError: On HTTP errors or stream errors
     """
-    return HTTPStreamContext(config, prompt, system, session_id)
+    return HTTPStreamContext(config, prompt, system, session_id, allowed_tools)
