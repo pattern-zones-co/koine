@@ -68,11 +68,12 @@ Make sure to include a packing list and budget estimate.`,
 	});
 
 	// Watch partial objects as they arrive - show progress indicator
-	let updateCount = 0;
+	let totalStreamUpdates = 0; // All updates from gateway
+	let displayUpdateCount = 0; // Updates shown to user (meaningful changes)
 	let lastDayCount = 0;
 
 	for await (const partial of result.partialObjectStream) {
-		updateCount++;
+		totalStreamUpdates++;
 
 		// Skip null/non-object partials (can happen during early parsing)
 		if (!partial || typeof partial !== "object") {
@@ -85,9 +86,10 @@ Make sure to include a packing list and budget estimate.`,
 		const packingItems =
 			(partial as { packingList?: unknown[] }).packingList?.length ?? 0;
 
-		// Only log when something meaningful changes
-		if (currentDays !== lastDayCount || updateCount === 1) {
-			console.log(`[Update ${updateCount}] Building itinerary...`);
+		// Only log when something meaningful changes (day count increases)
+		if (currentDays !== lastDayCount || displayUpdateCount === 0) {
+			displayUpdateCount++;
+			console.log(`[Update ${displayUpdateCount}] Building itinerary...`);
 			if (destination) console.log(`  Destination: ${destination}`);
 			if (currentDays > 0) console.log(`  Days planned: ${currentDays}/5`);
 			if (packingItems > 0) console.log(`  Packing items: ${packingItems}`);
@@ -124,9 +126,10 @@ Make sure to include a packing list and budget estimate.`,
 	}
 
 	const usage = await result.usage;
-	console.log(
-		`\n[${updateCount} streaming updates, ${usage.totalTokens} tokens]`,
-	);
+	console.log("\n--- Debug Info ---");
+	console.log(`User-visible updates: ${displayUpdateCount}`);
+	console.log(`Total stream updates from gateway: ${totalStreamUpdates}`);
+	console.log(`Total tokens: ${usage.totalTokens}`);
 }
 
 main().catch((error) => {
