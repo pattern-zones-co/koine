@@ -86,6 +86,26 @@ components:
           format: email
       required:
         - prompt
+    StreamObjectRequest:
+      type: object
+      properties:
+        system:
+          type: string
+        prompt:
+          type: string
+        sessionId:
+          type: string
+        model:
+          type: string
+        userEmail:
+          type: string
+          format: email
+        schema:
+          type: object
+          additionalProperties: {}
+      required:
+        - prompt
+        - schema
     UsageInfo:
       type: object
       properties:
@@ -637,6 +657,83 @@ paths:
       responses:
         "200":
           description: SSE stream with real-time Claude CLI output
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: *a3
+                  rawText:
+                    type: string
+                required:
+                  - error
+                  - code
+        "401":
+          description: Missing authorization header
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        "403":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+  /stream-object:
+    post:
+      summary: Stream structured JSON objects via SSE
+      description: "Streams partial JSON objects as they're generated using Server-Sent Events (SSE). Provides real-time streaming of structured data with partial object parsing. Event types: session (session ID), partial-object (partial JSON with parsed object), object (final validated object), result (final usage stats), error (errors), done (stream complete)."
+      tags:
+        - Streaming
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                system:
+                  type: string
+                prompt:
+                  type: string
+                sessionId:
+                  type: string
+                model:
+                  type: string
+                userEmail:
+                  type: string
+                  format: email
+                schema:
+                  type: object
+                  additionalProperties: {}
+              required:
+                - prompt
+                - schema
+      responses:
+        "200":
+          description: SSE stream with real-time partial JSON objects
           content:
             text/event-stream:
               schema:

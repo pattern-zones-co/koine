@@ -121,6 +121,7 @@ export function createStreamResultMessage(
 	overrides: Partial<{
 		session_id: string;
 		usage: { input_tokens: number; output_tokens: number };
+		structured_output?: unknown;
 	}> = {},
 ): string {
 	return JSON.stringify({
@@ -131,6 +132,23 @@ export function createStreamResultMessage(
 			output_tokens: 15,
 		},
 		...overrides,
+	});
+}
+
+/**
+ * Creates a stream_event message with content_block_delta (for streaming partial text).
+ * This simulates the output from --include-partial-messages flag.
+ */
+export function createStreamEventDelta(text: string): string {
+	return JSON.stringify({
+		type: "stream_event",
+		event: {
+			type: "content_block_delta",
+			delta: {
+				type: "text_delta",
+				text,
+			},
+		},
 	});
 }
 

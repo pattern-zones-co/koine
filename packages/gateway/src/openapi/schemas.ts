@@ -10,6 +10,7 @@ import {
 	generateTextRequestSchema,
 	generateTextResponseSchema,
 	healthResponseSchema,
+	streamObjectRequestSchema,
 	streamRequestSchema,
 	usageInfoSchema,
 } from "../types.js";
@@ -23,6 +24,7 @@ export const registry = new OpenAPIRegistry();
 registry.register("GenerateTextRequest", generateTextRequestSchema);
 registry.register("GenerateObjectRequest", generateObjectRequestSchema);
 registry.register("StreamRequest", streamRequestSchema);
+registry.register("StreamObjectRequest", streamObjectRequestSchema);
 
 // Register response schemas
 registry.register("UsageInfo", usageInfoSchema);

@@ -37,10 +37,15 @@ export const generateObjectRequestSchema = baseRequestSchema.extend({
 
 export const streamRequestSchema = baseRequestSchema;
 
+export const streamObjectRequestSchema = baseRequestSchema.extend({
+	schema: z.record(z.unknown()),
+});
+
 // Inferred types
 export type GenerateTextRequest = z.infer<typeof generateTextRequestSchema>;
 export type GenerateObjectRequest = z.infer<typeof generateObjectRequestSchema>;
 export type StreamRequest = z.infer<typeof streamRequestSchema>;
+export type StreamObjectRequest = z.infer<typeof streamObjectRequestSchema>;
 
 // =============================================================================
 // Response Schemas

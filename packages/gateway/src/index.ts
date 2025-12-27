@@ -4,6 +4,7 @@ import { logger } from "./logger.js";
 import docsRouter from "./routes/docs.js";
 import generateRouter from "./routes/generate.js";
 import healthRouter from "./routes/health.js";
+import streamObjectRouter from "./routes/stream-object.js";
 import streamRouter from "./routes/stream.js";
 
 const app: Application = express();
@@ -68,6 +69,7 @@ app.use(healthRouter);
 app.use(docsRouter);
 app.use(generateRouter);
 app.use(streamRouter);
+app.use(streamObjectRouter);
 
 // 404 handler
 app.use((_req, res) => {

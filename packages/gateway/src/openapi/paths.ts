@@ -6,6 +6,7 @@ import {
 	generateTextRequestSchema,
 	generateTextResponseSchema,
 	healthResponseSchema,
+	streamObjectRequestSchema,
 	streamRequestSchema,
 } from "../types.js";
 import { registry } from "./schemas.js";
@@ -222,6 +223,60 @@ registry.registerPath({
 	responses: {
 		200: {
 			description: "SSE stream with real-time Claude CLI output",
+			content: {
+				"text/event-stream": {
+					schema: z.string(),
+				},
+			},
+		},
+		400: {
+			description: "Validation error",
+			content: {
+				"application/json": {
+					schema: errorResponseSchema,
+				},
+			},
+		},
+		401: {
+			description: "Missing authorization header",
+			content: {
+				"application/json": {
+					schema: z.object({ error: z.string() }),
+				},
+			},
+		},
+		403: {
+			description: "Invalid API key",
+			content: {
+				"application/json": {
+					schema: z.object({ error: z.string() }),
+				},
+			},
+		},
+	},
+});
+
+// POST /stream-object
+registry.registerPath({
+	method: "post",
+	path: "/stream-object",
+	summary: "Stream structured JSON objects via SSE",
+	description:
+		"Streams partial JSON objects as they're generated using Server-Sent Events (SSE). Provides real-time streaming of structured data with partial object parsing. Event types: session (session ID), partial-object (partial JSON with parsed object), object (final validated object), result (final usage stats), error (errors), done (stream complete).",
+	tags: ["Streaming"],
+	security: [{ BearerAuth: [] }],
+	request: {
+		body: {
+			content: {
+				"application/json": {
+					schema: streamObjectRequestSchema,
+				},
+			},
+		},
+	},
+	responses: {
+		200: {
+			description: "SSE stream with real-time partial JSON objects",
 			content: {
 				"text/event-stream": {
 					schema: z.string(),
