@@ -102,6 +102,61 @@ async with koine.stream_text(prompt="Write a short story") as result:
     usage = await result.usage()
 ```
 
+## Streaming Structured Output
+
+> [!NOTE]
+> Streaming structured output uses prompt injection rather than constrained decoding because Claude Code CLI doesn't stream JSON tokens with `--json-schema`. This means the model may occasionally produce malformed JSON that requires fallback extraction. See [Architecture](architecture.md#structured-output-strategies) for details.
+
+### TypeScript
+
+```typescript
+import { z } from 'zod';
+
+const ItinerarySchema = z.object({
+  destination: z.string(),
+  days: z.array(z.object({
+    day: z.number(),
+    activities: z.array(z.string()),
+  })),
+});
+
+const result = await koine.streamObject({
+  prompt: 'Plan a 3-day trip to Tokyo',
+  schema: ItinerarySchema,
+});
+
+for await (const partial of result.partialObjectStream) {
+  console.log('Progress:', partial);
+}
+
+const itinerary = await result.object;  // fully validated
+const usage = await result.usage;
+```
+
+### Python
+
+```python
+from pydantic import BaseModel
+
+class Day(BaseModel):
+    day: int
+    activities: list[str]
+
+class Itinerary(BaseModel):
+    destination: str
+    days: list[Day]
+
+async with koine.stream_object(
+    prompt="Plan a 3-day trip to Tokyo",
+    schema=Itinerary,
+) as result:
+    async for partial in result.partial_object_stream:
+        print("Progress:", partial)
+
+    itinerary = await result.object()  # fully validated
+    usage = await result.usage()
+```
+
 ## Structured Output
 
 ### TypeScript
@@ -238,6 +293,7 @@ See [`packages/sdks/typescript/examples/`](../packages/sdks/typescript/examples/
 - `hello.ts` — Basic text generation
 - `extract-recipe.ts` — Structured output with Zod schemas
 - `stream.ts` — Real-time streaming
+- `stream-object.ts` — Streaming structured output
 - `conversation.ts` — Multi-turn session persistence
 
 ### Python
@@ -247,4 +303,5 @@ See [`packages/sdks/python/examples/`](../packages/sdks/python/examples/) for co
 - `hello.py` — Basic text generation
 - `extract_recipe.py` — Structured output with Pydantic schemas
 - `stream.py` — Real-time streaming
+- `stream_object.py` — Streaming structured output
 - `conversation.py` — Multi-turn session persistence

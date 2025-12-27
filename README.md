@@ -67,8 +67,8 @@ See [Docker Deployment](docs/docker-deployment.md) for docker-compose, version p
 - **OpenAPI spec**: generate clients for any language
 - **Runnable examples**: copy-paste and go
 - **Text generation**: simple prompts to full responses
-- **Streaming**: real-time Server-Sent Events
-- **Structured output**: type-safe extraction with Zod/Pydantic schemas
+- **Streaming**: real-time Server-Sent Events for text and structured data
+- **Structured output**: type-safe extraction with Zod/Pydantic schemas (batch and streaming)
 - **Session management**: multi-turn conversations with context persistence
 - **TypeScript & Python SDKs**: full type safety and async support
 - **Extensible**: add custom [skills and slash commands](docs/skills-and-commands.md)

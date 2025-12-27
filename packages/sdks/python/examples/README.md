@@ -25,6 +25,7 @@ uv pip install -e ".[dev]"
 uv run python examples/hello.py           # Basic text generation
 uv run python examples/extract_recipe.py  # Structured output with Pydantic
 uv run python examples/stream.py          # Real-time streaming
+uv run python examples/stream_object.py   # Streaming structured output
 uv run python examples/conversation.py    # Multi-turn sessions
 ```
 
@@ -35,4 +36,5 @@ uv run python examples/conversation.py    # Multi-turn sessions
 | `hello.py` | Basic text generation |
 | `extract_recipe.py` | Structured output with Pydantic schemas |
 | `stream.py` | Real-time streaming with async iterators |
+| `stream_object.py` | Streaming structured output with partial updates |
 | `conversation.py` | Multi-turn session persistence |

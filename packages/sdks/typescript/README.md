@@ -43,6 +43,7 @@ console.log(result.text);
 - **Text Generation** — `generateText()` for simple prompts
 - **Streaming** — `streamText()` with ReadableStream (async iterable)
 - **Structured Output** — `generateObject()` with Zod schema validation
+- **Streaming Structured Output** — `streamObject()` with partial object streaming
 - **Cancellation** — AbortSignal support for all requests
 - **Type Safety** — Full TypeScript types for all requests and responses
 - **Error Handling** — `KoineError` class with typed error codes
@@ -64,6 +65,7 @@ Creates a client instance with the given configuration. The config is validated 
 | `koine.generateText(options)` | Generate text from a prompt |
 | `koine.streamText(options)` | Stream text via Server-Sent Events |
 | `koine.generateObject(options)` | Extract structured data using a Zod schema |
+| `koine.streamObject(options)` | Stream structured data with partial updates |
 
 ### Types
 
@@ -73,6 +75,7 @@ Creates a client instance with the given configuration. The config is validated 
 | `KoineClient` | Client interface returned by `createKoine()` |
 | `KoineUsage` | Token usage stats (inputTokens, outputTokens, totalTokens) |
 | `KoineStreamResult` | Streaming result with ReadableStream and promises |
+| `KoineStreamObjectResult<T>` | Streaming object result with partialObjectStream |
 | `KoineError` | Error class with typed `code` property |
 | `KoineErrorCode` | Union type of all possible error codes |
 
@@ -113,10 +116,11 @@ Runnable examples are available in the [`examples/`](https://github.com/pattern-
 
 ```bash
 cd packages/sdks/typescript
-bun run example:hello        # Basic text generation
-bun run example:recipe       # Structured output with Zod
-bun run example:stream       # Real-time streaming
-bun run example:conversation # Multi-turn sessions
+bun run example:hello         # Basic text generation
+bun run example:recipe        # Structured output with Zod
+bun run example:stream        # Real-time streaming
+bun run example:stream-object # Streaming structured output
+bun run example:conversation  # Multi-turn sessions
 ```
 
 ## License

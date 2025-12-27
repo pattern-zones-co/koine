@@ -45,6 +45,7 @@ asyncio.run(main())
 - **Text Generation** — `koine.generate_text()` for simple prompts
 - **Streaming** — `koine.stream_text()` with async iterators
 - **Structured Output** — `koine.generate_object()` with Pydantic schema validation
+- **Streaming Structured Output** — `koine.stream_object()` with partial object streaming
 - **Type Safety** — Full type hints for all requests and responses
 - **Error Handling** — `KoineError` class with error codes
 
@@ -65,6 +66,7 @@ Creates a client instance with the given configuration. The config is validated 
 | `koine.generate_text(*, prompt, system?, session_id?)` | Generate text from a prompt |
 | `koine.stream_text(*, prompt, system?, session_id?)` | Stream text via Server-Sent Events |
 | `koine.generate_object(*, prompt, schema, system?, session_id?)` | Extract structured data using a Pydantic model |
+| `koine.stream_object(*, prompt, schema, system?, session_id?)` | Stream structured data with partial updates |
 
 ### Types
 
@@ -75,6 +77,7 @@ Creates a client instance with the given configuration. The config is validated 
 | `GenerateTextResult` | Text generation response with usage stats |
 | `GenerateObjectResult[T]` | Object extraction response (generic over schema) |
 | `StreamTextResult` | Streaming result with async iterators and futures |
+| `StreamObjectResult[T]` | Streaming object result with partial_object_stream |
 | `KoineUsage` | Token usage information |
 | `KoineError` | Error class with code and raw_text |
 
@@ -118,6 +121,7 @@ uv pip install -e ".[dev]"
 uv run python examples/hello.py           # Basic text generation
 uv run python examples/extract_recipe.py  # Structured output with Pydantic
 uv run python examples/stream.py          # Real-time streaming
+uv run python examples/stream_object.py   # Streaming structured output
 uv run python examples/conversation.py    # Multi-turn sessions
 ```
 
