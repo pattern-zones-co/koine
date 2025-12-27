@@ -12,8 +12,6 @@ const baseRequestSchema = z.object({
 	prompt: z.string(),
 	sessionId: z.string().optional(),
 	model: z.string().optional(),
-	/** User email for tool proxy access (enables Claude skills to call Inbox Zero tools) */
-	userEmail: z.string().email().optional(),
 });
 
 export const generateTextRequestSchema = baseRequestSchema.extend({

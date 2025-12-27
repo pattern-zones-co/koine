@@ -16,31 +16,14 @@ import {
  * OAuth tokens (Claude Pro/Max) operate under Anthropic's Consumer Terms which
  * prohibit automated access. Use ANTHROPIC_API_KEY for all automation.
  * See: https://www.anthropic.com/legal/consumer-terms
- *
- * Also passes through tool proxy variables for Claude skills that need to
- * invoke Inbox Zero API tools.
  */
-export function buildClaudeEnv(options?: {
-	userEmail?: string;
-}): NodeJS.ProcessEnv {
+export function buildClaudeEnv(): NodeJS.ProcessEnv {
 	const env = { ...process.env };
 
 	// API key takes precedence - OAuth is undocumented fallback for personal testing only.
 	// OAuth tokens may violate Anthropic's Consumer Terms for automated use.
 	if (env.ANTHROPIC_API_KEY) {
 		env.CLAUDE_CODE_OAUTH_TOKEN = undefined;
-	}
-
-	// Pass through tool proxy variables for Claude skills
-	// These enable the inbox-zero-tools skill to invoke the LLM Tool Proxy API
-	if (process.env.INBOX_ZERO_API_URL) {
-		env.INBOX_ZERO_API_URL = process.env.INBOX_ZERO_API_URL;
-	}
-	if (process.env.LLM_TOOL_PROXY_TOKEN) {
-		env.LLM_TOOL_PROXY_TOKEN = process.env.LLM_TOOL_PROXY_TOKEN;
-	}
-	if (options?.userEmail) {
-		env.INBOX_ZERO_USER_EMAIL = options.userEmail;
 	}
 
 	return env;
@@ -57,8 +40,6 @@ export interface ClaudeCliOptions {
 	timeoutMs?: number;
 	/** Model alias (e.g., 'sonnet', 'haiku') or full name */
 	model?: string;
-	/** User email for tool proxy access (enables Claude skills to call Inbox Zero tools) */
-	userEmail?: string;
 	/** JSON schema for constrained decoding (CLI enforces valid JSON output) */
 	jsonSchema?: Record<string, unknown>;
 }
@@ -91,7 +72,7 @@ export async function executeClaudeCli(
 
 		const claude = spawn("claude", args, {
 			stdio: ["pipe", "pipe", "pipe"],
-			env: buildClaudeEnv({ userEmail: options.userEmail }),
+			env: buildClaudeEnv(),
 		});
 
 		// Set up execution timeout

@@ -77,7 +77,7 @@ router.post(
 			return;
 		}
 
-		const { prompt, system, sessionId, model, userEmail } = parseResult.data;
+		const { prompt, system, sessionId, model } = parseResult.data;
 
 		// Set up SSE headers
 		res.setHeader("Content-Type", "text/event-stream");
@@ -103,7 +103,7 @@ router.post(
 
 		const claude = spawn("claude", args, {
 			stdio: ["pipe", "pipe", "pipe"],
-			env: buildClaudeEnv({ userEmail }),
+			env: buildClaudeEnv(),
 		});
 
 		const currentSessionId = sessionId || uuidv4();

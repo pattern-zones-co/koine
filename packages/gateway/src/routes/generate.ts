@@ -36,7 +36,7 @@ router.post(
 				return;
 			}
 
-			const { prompt, system, sessionId, model, userEmail } = parseResult.data;
+			const { prompt, system, sessionId, model } = parseResult.data;
 
 			logger.info("generate-text", {
 				model: model || "default",
@@ -50,7 +50,6 @@ router.post(
 					system,
 					sessionId,
 					model,
-					userEmail,
 				});
 
 				res.json({
@@ -90,8 +89,7 @@ router.post(
 				return;
 			}
 
-			const { prompt, system, schema, sessionId, model, userEmail } =
-				parseResult.data;
+			const { prompt, system, schema, sessionId, model } = parseResult.data;
 
 			logger.info("generate-object", {
 				model: model || "default",
@@ -105,7 +103,6 @@ router.post(
 					system,
 					sessionId,
 					model,
-					userEmail,
 					jsonSchema: schema,
 				});
 
