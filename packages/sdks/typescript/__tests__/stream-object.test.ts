@@ -673,6 +673,398 @@ describe("streamObject", () => {
 		expect(timeoutError?.name).toBe("AbortError");
 	});
 
+	it("should skip partial-object when parsed is null", async () => {
+		const events = [
+			{ event: "session", data: { sessionId: "s" } },
+			{
+				event: "partial-object",
+				data: { partial: '{"name":', parsed: null }, // null parsed value
+			},
+			{
+				event: "partial-object",
+				data: { partial: '{"name":"Alice"', parsed: { name: "Alice" } },
+			},
+			{ event: "object", data: { object: { name: "Alice", age: 30 } } },
+			{
+				event: "result",
+				data: {
+					sessionId: "s",
+					usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+				},
+			},
+			{ event: "done", data: { code: 0 } },
+		];
+
+		global.fetch = vi.fn().mockResolvedValue(createMockSSEResponse(events));
+
+		const result = await streamObject(testConfig, {
+			prompt: "test",
+			schema: testSchema,
+		});
+
+		const partials: unknown[] = [];
+		for await (const partial of result.partialObjectStream) {
+			partials.push(partial);
+		}
+
+		// Should only have 1 partial - the null parsed one should be skipped
+		expect(partials.length).toBe(1);
+		expect(partials[0]).toEqual({ name: "Alice" });
+	});
+
+	it("should skip partial-object when parsed is not an object", async () => {
+		const events = [
+			{ event: "session", data: { sessionId: "s" } },
+			{
+				event: "partial-object",
+				data: { partial: '"just a string"', parsed: "just a string" }, // string, not object
+			},
+			{
+				event: "partial-object",
+				data: { partial: '{"name":"Bob"', parsed: { name: "Bob" } },
+			},
+			{ event: "object", data: { object: { name: "Bob", age: 25 } } },
+			{
+				event: "result",
+				data: {
+					sessionId: "s",
+					usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+				},
+			},
+			{ event: "done", data: { code: 0 } },
+		];
+
+		global.fetch = vi.fn().mockResolvedValue(createMockSSEResponse(events));
+
+		const result = await streamObject(testConfig, {
+			prompt: "test",
+			schema: testSchema,
+		});
+
+		const partials: unknown[] = [];
+		for await (const partial of result.partialObjectStream) {
+			partials.push(partial);
+		}
+
+		// Should only have 1 partial - the string parsed one should be skipped
+		expect(partials.length).toBe(1);
+		expect(partials[0]).toEqual({ name: "Bob" });
+	});
+
+	it("should resolve sessionId from result event when no session event received", async () => {
+		const events = [
+			// No session event!
+			{
+				event: "partial-object",
+				data: { partial: '{"name":"Test"', parsed: { name: "Test" } },
+			},
+			{ event: "object", data: { object: { name: "Test", age: 1 } } },
+			{
+				event: "result",
+				data: {
+					sessionId: "result-session-id",
+					usage: { inputTokens: 5, outputTokens: 2, totalTokens: 7 },
+				},
+			},
+			{ event: "done", data: { code: 0 } },
+		];
+
+		global.fetch = vi.fn().mockResolvedValue(createMockSSEResponse(events));
+
+		const result = await streamObject(testConfig, {
+			prompt: "test",
+			schema: testSchema,
+		});
+
+		// Consume stream
+		for await (const _ of result.partialObjectStream) {
+		}
+
+		// sessionId should be resolved from result event
+		const sessionId = await result.sessionId;
+		expect(sessionId).toBe("result-session-id");
+	});
+
+	it("should reject sessionId when error occurs before session event", async () => {
+		const events = [
+			// No session event before error!
+			{
+				event: "error",
+				data: { error: "Early failure", code: "STREAM_ERROR" },
+			},
+		];
+
+		global.fetch = vi.fn().mockResolvedValue(createMockSSEResponse(events));
+
+		const result = await streamObject(testConfig, {
+			prompt: "test",
+			schema: testSchema,
+		});
+
+		// Consume stream (will throw)
+		await expect(async () => {
+			for await (const _ of result.partialObjectStream) {
+			}
+		}).rejects.toMatchObject({ code: "STREAM_ERROR" });
+
+		// All promises should be rejected with the same error
+		await expect(result.sessionId).rejects.toMatchObject({
+			code: "STREAM_ERROR",
+		});
+		await expect(result.object).rejects.toMatchObject({
+			code: "STREAM_ERROR",
+		});
+		await expect(result.usage).rejects.toMatchObject({
+			code: "STREAM_ERROR",
+		});
+	});
+
+	it("should reject all promises when critical SSE event has malformed JSON", async () => {
+		// Create a stream that sends malformed JSON in a session event
+		const encoder = new TextEncoder();
+		const sseData = "event: session\ndata: {invalid json}\n\n";
+
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(encoder.encode(sseData));
+				controller.close();
+			},
+		});
+
+		const mockResponse = {
+			ok: true,
+			status: 200,
+			statusText: "OK",
+			headers: new Headers({ "Content-Type": "text/event-stream" }),
+			body: stream,
+			text: vi.fn(),
+			json: vi.fn(),
+			redirected: false,
+			type: "basic",
+			url: "",
+			clone: vi.fn(),
+			bodyUsed: false,
+			arrayBuffer: vi.fn(),
+			blob: vi.fn(),
+			formData: vi.fn(),
+			bytes: vi.fn(),
+		} as unknown as Response;
+
+		global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+		const result = await streamObject(testConfig, {
+			prompt: "test",
+			schema: testSchema,
+		});
+
+		// Stream should throw SSE_PARSE_ERROR
+		await expect(async () => {
+			for await (const _ of result.partialObjectStream) {
+			}
+		}).rejects.toMatchObject({ code: "SSE_PARSE_ERROR" });
+
+		// All promises should be rejected
+		await expect(result.sessionId).rejects.toMatchObject({
+			code: "SSE_PARSE_ERROR",
+		});
+		await expect(result.object).rejects.toMatchObject({
+			code: "SSE_PARSE_ERROR",
+		});
+		await expect(result.usage).rejects.toMatchObject({
+			code: "SSE_PARSE_ERROR",
+		});
+	});
+
+	it("should continue streaming when partial-object has malformed JSON", async () => {
+		// Create a stream with malformed partial-object followed by valid events
+		const encoder = new TextEncoder();
+		const events = [
+			`event: session\ndata: ${JSON.stringify({ sessionId: "s" })}\n\n`,
+			"event: partial-object\ndata: {malformed json\n\n", // Malformed
+			`event: partial-object\ndata: ${JSON.stringify({ partial: '{"name":"Bob"', parsed: { name: "Bob" } })}\n\n`,
+			`event: object\ndata: ${JSON.stringify({ object: { name: "Bob", age: 25 } })}\n\n`,
+			`event: result\ndata: ${JSON.stringify({ sessionId: "s", usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 } })}\n\n`,
+			`event: done\ndata: ${JSON.stringify({ code: 0 })}\n\n`,
+		];
+
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				for (const event of events) {
+					controller.enqueue(encoder.encode(event));
+				}
+				controller.close();
+			},
+		});
+
+		const mockResponse = {
+			ok: true,
+			status: 200,
+			statusText: "OK",
+			headers: new Headers({ "Content-Type": "text/event-stream" }),
+			body: stream,
+			text: vi.fn(),
+			json: vi.fn(),
+			redirected: false,
+			type: "basic",
+			url: "",
+			clone: vi.fn(),
+			bodyUsed: false,
+			arrayBuffer: vi.fn(),
+			blob: vi.fn(),
+			formData: vi.fn(),
+			bytes: vi.fn(),
+		} as unknown as Response;
+
+		global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+		// Spy on console.warn to verify warning is logged
+		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+		const result = await streamObject(testConfig, {
+			prompt: "test",
+			schema: testSchema,
+		});
+
+		const partials: unknown[] = [];
+		for await (const partial of result.partialObjectStream) {
+			partials.push(partial);
+		}
+
+		// Should have received the valid partial
+		expect(partials.length).toBe(1);
+		expect(partials[0]).toEqual({ name: "Bob" });
+
+		// Should have logged a warning for the malformed partial
+		expect(warnSpy).toHaveBeenCalledWith(
+			expect.stringContaining(
+				"[Koine SDK] Failed to parse SSE partial-object event",
+			),
+		);
+
+		// Final object should still resolve
+		const obj = await result.object;
+		expect(obj).toEqual({ name: "Bob", age: 25 });
+
+		warnSpy.mockRestore();
+	});
+
+	it("should reject sessionId with NO_SESSION when stream ends without session", async () => {
+		// Create a stream that ends without session or result events
+		const encoder = new TextEncoder();
+		const events = [
+			`event: object\ndata: ${JSON.stringify({ object: { name: "Test", age: 1 } })}\n\n`,
+			`event: done\ndata: ${JSON.stringify({ code: 0 })}\n\n`,
+		];
+
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				for (const event of events) {
+					controller.enqueue(encoder.encode(event));
+				}
+				controller.close();
+			},
+		});
+
+		const mockResponse = {
+			ok: true,
+			status: 200,
+			statusText: "OK",
+			headers: new Headers({ "Content-Type": "text/event-stream" }),
+			body: stream,
+			text: vi.fn(),
+			json: vi.fn(),
+			redirected: false,
+			type: "basic",
+			url: "",
+			clone: vi.fn(),
+			bodyUsed: false,
+			arrayBuffer: vi.fn(),
+			blob: vi.fn(),
+			formData: vi.fn(),
+			bytes: vi.fn(),
+		} as unknown as Response;
+
+		global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+		const result = await streamObject(testConfig, {
+			prompt: "test",
+			schema: testSchema,
+		});
+
+		// Consume stream
+		for await (const _ of result.partialObjectStream) {
+		}
+
+		// sessionId should reject with NO_SESSION
+		await expect(result.sessionId).rejects.toMatchObject({
+			code: "NO_SESSION",
+			message: "Stream ended without session ID",
+		});
+
+		// Also consume the other rejected promises to prevent unhandled rejections
+		await expect(result.usage).rejects.toMatchObject({ code: "NO_USAGE" });
+	});
+
+	it("should reject usage with NO_USAGE when stream ends without result", async () => {
+		// Create a stream that has object but no result event
+		const encoder = new TextEncoder();
+		const events = [
+			`event: session\ndata: ${JSON.stringify({ sessionId: "s" })}\n\n`,
+			`event: object\ndata: ${JSON.stringify({ object: { name: "Test", age: 1 } })}\n\n`,
+			`event: done\ndata: ${JSON.stringify({ code: 0 })}\n\n`,
+			// No result event!
+		];
+
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				for (const event of events) {
+					controller.enqueue(encoder.encode(event));
+				}
+				controller.close();
+			},
+		});
+
+		const mockResponse = {
+			ok: true,
+			status: 200,
+			statusText: "OK",
+			headers: new Headers({ "Content-Type": "text/event-stream" }),
+			body: stream,
+			text: vi.fn(),
+			json: vi.fn(),
+			redirected: false,
+			type: "basic",
+			url: "",
+			clone: vi.fn(),
+			bodyUsed: false,
+			arrayBuffer: vi.fn(),
+			blob: vi.fn(),
+			formData: vi.fn(),
+			bytes: vi.fn(),
+		} as unknown as Response;
+
+		global.fetch = vi.fn().mockResolvedValue(mockResponse);
+
+		const result = await streamObject(testConfig, {
+			prompt: "test",
+			schema: testSchema,
+		});
+
+		// Consume stream
+		for await (const _ of result.partialObjectStream) {
+		}
+
+		// Object should resolve (it was received)
+		const obj = await result.object;
+		expect(obj).toEqual({ name: "Test", age: 1 });
+
+		// Usage should reject with NO_USAGE
+		await expect(result.usage).rejects.toMatchObject({
+			code: "NO_USAGE",
+			message: "Stream ended without usage information",
+		});
+	});
+
 	it("should handle mid-stream connection errors", async () => {
 		// Create a stream that errors mid-way through
 		const encoder = new TextEncoder();

@@ -115,6 +115,42 @@ describe("createKoine", () => {
 		expect(result.object.name).toBe("Factory Test");
 	});
 
+	it("should create a client with streamObject method", async () => {
+		const schema = z.object({ name: z.string(), age: z.number() });
+		const events = [
+			{ event: "session", data: { sessionId: "stream-obj-session" } },
+			{
+				event: "partial-object",
+				data: { partial: '{"name":"Al', parsed: { name: "Al" } },
+			},
+			{ event: "object", data: { object: { name: "Alice", age: 30 } } },
+			{
+				event: "result",
+				data: {
+					sessionId: "stream-obj-session",
+					usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+				},
+			},
+			{ event: "done", data: { code: 0 } },
+		];
+
+		global.fetch = vi.fn().mockResolvedValue(createMockSSEResponse(events));
+
+		const koine = createKoine(testConfig);
+		const result = await koine.streamObject({ prompt: "test", schema });
+
+		// Consume the partial stream
+		const partials: unknown[] = [];
+		for await (const partial of result.partialObjectStream) {
+			partials.push(partial);
+		}
+
+		const obj = await result.object;
+		expect(obj.name).toBe("Alice");
+		expect(obj.age).toBe(30);
+		expect(partials.length).toBe(1);
+	});
+
 	it("should validate config at creation time", () => {
 		expect(() => createKoine({ ...testConfig, baseUrl: "" })).toThrow(
 			KoineError,
