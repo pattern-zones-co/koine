@@ -20,7 +20,8 @@ curl -H "Authorization: Bearer $CLAUDE_CODE_GATEWAY_API_KEY" \
 | GET | `/openapi.yaml` | OpenAPI spec (no auth) |
 | POST | `/generate-text` | Generate text |
 | POST | `/generate-object` | Extract structured JSON |
-| POST | `/stream` | Stream via SSE |
+| POST | `/stream` | Stream text via SSE |
+| POST | `/stream-object` | Stream structured JSON via SSE |
 
 ## Sessions
 
@@ -35,7 +36,26 @@ The gateway limits concurrent requests to prevent resource exhaustion. When limi
 - **Body**: `{ "error": "Concurrency limit exceeded", "code": "CONCURRENCY_LIMIT_ERROR" }`
 
 Default limits:
-- `/stream`: 3 concurrent requests
+- `/stream`, `/stream-object`: 3 concurrent requests
 - `/generate-text`, `/generate-object`: 5 concurrent requests
 
 See [Environment Variables](environment-variables.md) to configure limits.
+
+## Tool Restrictions
+
+All POST endpoints accept an optional `allowedTools` parameter to restrict which Claude CLI tools can be used:
+
+```json
+{
+  "prompt": "Read the README file",
+  "allowedTools": ["Read", "Glob"]
+}
+```
+
+**Behavior:**
+- Gateway-level restrictions (`KOINE_ALLOWED_TOOLS`, `KOINE_DISALLOWED_TOOLS`) are the primary control
+- Request `allowedTools` can only further restrict, never expand beyond gateway limits
+- Gateway `KOINE_DISALLOWED_TOOLS` cannot be bypassed by requests
+- If all requested tools are blocked, returns `400` with code `NO_TOOLS_AVAILABLE`
+
+See [Environment Variables](environment-variables.md#tool-restrictions) for gateway configuration.

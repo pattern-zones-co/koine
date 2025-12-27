@@ -20,6 +20,10 @@ services:
       # Concurrency limits
       KOINE_MAX_STREAMING_CONCURRENT: ${KOINE_MAX_STREAMING_CONCURRENT:-3}
       KOINE_MAX_NONSTREAMING_CONCURRENT: ${KOINE_MAX_NONSTREAMING_CONCURRENT:-5}
+      # Tool restrictions (JSON array format, e.g., '["Read","Glob","Grep"]')
+      # Gateway-level restrictions that SDK requests cannot bypass
+      KOINE_ALLOWED_TOOLS: ${KOINE_ALLOWED_TOOLS:-}
+      KOINE_DISALLOWED_TOOLS: ${KOINE_DISALLOWED_TOOLS:-}
     volumes:
       # Named volume for Claude CLI data
       - koine-data:/home/bun/.claude

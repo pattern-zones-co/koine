@@ -53,6 +53,7 @@ const result = await koine.generateText({
   prompt: 'Explain quantum computing',
   system: 'You are a helpful teacher',  // optional
   sessionId: 'continue-conversation',   // optional
+  allowedTools: ['Read', 'Glob'],       // optional, restrict tools
 });
 
 console.log(result.text);
@@ -67,6 +68,7 @@ result = await koine.generate_text(
     prompt="Explain quantum computing",
     system="You are a helpful teacher",  # optional
     session_id="continue-conversation",  # optional
+    allowed_tools=["Read", "Glob"],      # optional, restrict tools
 )
 
 print(result.text)
@@ -206,6 +208,30 @@ async def with_retry(fn, max_retries=3):
             raise
     raise Exception("Max retries exceeded")
 ```
+
+## Tool Restrictions
+
+Tool access is controlled at the gateway level via environment variables (`KOINE_ALLOWED_TOOLS`, `KOINE_DISALLOWED_TOOLS`). SDK requests can further restrict which tools are used, but cannot expand beyond gateway limits or bypass disallowed tools.
+
+**TypeScript:**
+```typescript
+const result = await koine.generateText({
+  prompt: 'Read the README file',
+  allowedTools: ['Read', 'Glob'],  // Only allow Read and Glob
+});
+```
+
+**Python:**
+```python
+result = await koine.generate_text(
+    prompt="Read the README file",
+    allowed_tools=["Read", "Glob"],  # Only allow Read and Glob
+)
+```
+
+If all requested tools are blocked by gateway restrictions, the API returns `400` with code `NO_TOOLS_AVAILABLE`.
+
+See [Environment Variables](./environment-variables.md#tool-restrictions) for gateway-level configuration.
 
 ## Multi-turn Conversations
 
