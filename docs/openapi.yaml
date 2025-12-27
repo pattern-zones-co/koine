@@ -63,7 +63,36 @@ components:
           format: email
         schema:
           type: object
-          additionalProperties: {}
+          properties:
+            type:
+              type: string
+              enum: &a1
+                - object
+                - array
+                - string
+                - number
+                - integer
+                - boolean
+                - "null"
+            properties:
+              type: object
+              additionalProperties: {}
+            items: {}
+            $ref:
+              type: string
+            allOf:
+              type: array
+              items: {}
+            anyOf:
+              type: array
+              items: {}
+            oneOf:
+              type: array
+              items: {}
+            enum:
+              type: array
+              items: {}
+            const: {}
         maxTokens:
           type: integer
           exclusiveMinimum: 0
@@ -86,6 +115,48 @@ components:
           format: email
       required:
         - prompt
+    StreamObjectRequest:
+      type: object
+      properties:
+        system:
+          type: string
+        prompt:
+          type: string
+        sessionId:
+          type: string
+        model:
+          type: string
+        userEmail:
+          type: string
+          format: email
+        schema:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: *a1
+            properties:
+              type: object
+              additionalProperties: {}
+            items: {}
+            $ref:
+              type: string
+            allOf:
+              type: array
+              items: {}
+            anyOf:
+              type: array
+              items: {}
+            oneOf:
+              type: array
+              items: {}
+            enum:
+              type: array
+              items: {}
+            const: {}
+      required:
+        - prompt
+        - schema
     UsageInfo:
       type: object
       properties:
@@ -164,7 +235,7 @@ components:
           type: string
         code:
           type: string
-          enum: &a3
+          enum: &a4
             - VALIDATION_ERROR
             - INTERNAL_ERROR
             - UNKNOWN_ERROR
@@ -183,12 +254,12 @@ components:
       properties:
         status:
           type: string
-          enum: &a1
+          enum: &a2
             - healthy
             - unhealthy
         claudeCli:
           type: string
-          enum: &a2
+          enum: &a3
             - available
             - unavailable
         timestamp:
@@ -247,10 +318,10 @@ paths:
                 properties:
                   status:
                     type: string
-                    enum: *a1
+                    enum: *a2
                   claudeCli:
                     type: string
-                    enum: *a2
+                    enum: *a3
                   timestamp:
                     type: string
                   error:
@@ -298,10 +369,10 @@ paths:
                 properties:
                   status:
                     type: string
-                    enum: *a1
+                    enum: *a2
                   claudeCli:
                     type: string
-                    enum: *a2
+                    enum: *a3
                   timestamp:
                     type: string
                   error:
@@ -439,7 +510,7 @@ paths:
                     type: string
                   code:
                     type: string
-                    enum: *a3
+                    enum: *a4
                   rawText:
                     type: string
                 required:
@@ -478,7 +549,7 @@ paths:
                     type: string
                   code:
                     type: string
-                    enum: *a3
+                    enum: *a4
                   rawText:
                     type: string
                 required:
@@ -511,7 +582,29 @@ paths:
                   format: email
                 schema:
                   type: object
-                  additionalProperties: {}
+                  properties:
+                    type:
+                      type: string
+                      enum: *a1
+                    properties:
+                      type: object
+                      additionalProperties: {}
+                    items: {}
+                    $ref:
+                      type: string
+                    allOf:
+                      type: array
+                      items: {}
+                    anyOf:
+                      type: array
+                      items: {}
+                    oneOf:
+                      type: array
+                      items: {}
+                    enum:
+                      type: array
+                      items: {}
+                    const: {}
                 maxTokens:
                   type: integer
                   exclusiveMinimum: 0
@@ -562,7 +655,7 @@ paths:
                     type: string
                   code:
                     type: string
-                    enum: *a3
+                    enum: *a4
                   rawText:
                     type: string
                 required:
@@ -601,7 +694,7 @@ paths:
                     type: string
                   code:
                     type: string
-                    enum: *a3
+                    enum: *a4
                   rawText:
                     type: string
                 required:
@@ -652,7 +745,106 @@ paths:
                     type: string
                   code:
                     type: string
-                    enum: *a3
+                    enum: *a4
+                  rawText:
+                    type: string
+                required:
+                  - error
+                  - code
+        "401":
+          description: Missing authorization header
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+        "403":
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required:
+                  - error
+  /stream-object:
+    post:
+      summary: Stream structured JSON objects via SSE
+      description: "Streams partial JSON objects as they're generated using Server-Sent Events (SSE). Provides real-time streaming of structured data with partial object parsing. Event types: session (session ID), partial-object (partial JSON with parsed object), object (final validated object), result (final usage stats), error (errors), done (stream complete)."
+      tags:
+        - Streaming
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                system:
+                  type: string
+                prompt:
+                  type: string
+                sessionId:
+                  type: string
+                model:
+                  type: string
+                userEmail:
+                  type: string
+                  format: email
+                schema:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: *a1
+                    properties:
+                      type: object
+                      additionalProperties: {}
+                    items: {}
+                    $ref:
+                      type: string
+                    allOf:
+                      type: array
+                      items: {}
+                    anyOf:
+                      type: array
+                      items: {}
+                    oneOf:
+                      type: array
+                      items: {}
+                    enum:
+                      type: array
+                      items: {}
+                    const: {}
+              required:
+                - prompt
+                - schema
+      responses:
+        "200":
+          description: SSE stream with real-time partial JSON objects
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  code:
+                    type: string
+                    enum: *a4
                   rawText:
                     type: string
                 required:

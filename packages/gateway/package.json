@@ -28,6 +28,7 @@
 	"dependencies": {
 		"@scalar/express-api-reference": "^0.8.30",
 		"express": "4.22.1",
+		"partial-json": "^0.1.7",
 		"uuid": "11.1.0",
 		"zod": "3.25.76"
 	},

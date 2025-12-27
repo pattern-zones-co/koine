@@ -11,6 +11,7 @@ export type KoineErrorCode =
 	| "SSE_PARSE_ERROR"
 	| "NO_SESSION"
 	| "NO_USAGE"
+	| "NO_OBJECT"
 	| "NO_RESPONSE_BODY"
 	| "TIMEOUT"
 	| "NETWORK_ERROR"

@@ -25,8 +25,66 @@ export const generateTextRequestSchema = baseRequestSchema.extend({
 	maxTokens: z.number().int().positive().optional(),
 });
 
+/**
+ * JSON Schema validator that checks for valid schema structure.
+ * Requires the schema to have at least one recognized JSON Schema keyword.
+ * The CLI does full validation, but this catches obvious misuse early.
+ */
+const jsonSchemaSchema = z
+	.object({
+		type: z
+			.enum([
+				"object",
+				"array",
+				"string",
+				"number",
+				"integer",
+				"boolean",
+				"null",
+			])
+			.optional(),
+		properties: z.record(z.unknown()).optional(),
+		items: z.unknown().optional(),
+		$ref: z.string().optional(),
+		allOf: z.array(z.unknown()).optional(),
+		anyOf: z.array(z.unknown()).optional(),
+		oneOf: z.array(z.unknown()).optional(),
+		enum: z.array(z.unknown()).optional(),
+		const: z.unknown().optional(),
+	})
+	.passthrough() // Allow additional JSON Schema keywords
+	.refine(
+		(schema) => {
+			// Must have at least one recognized JSON Schema keyword
+			const schemaKeywords = [
+				"type",
+				"properties",
+				"items",
+				"$ref",
+				"allOf",
+				"anyOf",
+				"oneOf",
+				"enum",
+				"const",
+				"required",
+				"additionalProperties",
+				"minLength",
+				"maxLength",
+				"minimum",
+				"maximum",
+				"pattern",
+				"format",
+			];
+			return schemaKeywords.some((keyword) => keyword in schema);
+		},
+		{
+			message:
+				"Schema must contain at least one valid JSON Schema keyword (e.g., type, properties, $ref)",
+		},
+	);
+
 export const generateObjectRequestSchema = baseRequestSchema.extend({
-	schema: z.record(z.unknown()),
+	schema: jsonSchemaSchema,
 	/**
 	 * Maximum tokens to generate.
 	 * Note: Not currently used - Claude CLI does not support --max-tokens.
@@ -37,10 +95,15 @@ export const generateObjectRequestSchema = baseRequestSchema.extend({
 
 export const streamRequestSchema = baseRequestSchema;
 
+export const streamObjectRequestSchema = baseRequestSchema.extend({
+	schema: jsonSchemaSchema,
+});
+
 // Inferred types
 export type GenerateTextRequest = z.infer<typeof generateTextRequestSchema>;
 export type GenerateObjectRequest = z.infer<typeof generateObjectRequestSchema>;
 export type StreamRequest = z.infer<typeof streamRequestSchema>;
+export type StreamObjectRequest = z.infer<typeof streamObjectRequestSchema>;
 
 // =============================================================================
 // Response Schemas

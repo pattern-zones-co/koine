@@ -79,3 +79,29 @@ export interface SSEErrorEvent {
 	readonly error: string;
 	readonly code?: string;
 }
+
+/**
+ * SSE event types from Koine gateway /stream-object endpoint (internal).
+ */
+export interface SSEPartialObjectEvent {
+	readonly partial: string;
+	readonly parsed: unknown;
+}
+
+export interface SSEObjectEvent {
+	readonly object: unknown;
+}
+
+/**
+ * Result from streaming object generation.
+ */
+export interface KoineStreamObjectResult<T> {
+	/** Stream of partial objects as they arrive. Supports both ReadableStream methods and async iteration. */
+	readonly partialObjectStream: ReadableStream<T> & AsyncIterable<T>;
+	/** Final validated object (resolves when stream completes via object event, rejects with KoineError if validation fails) */
+	readonly object: Promise<T>;
+	/** Session ID for conversation continuity (resolves early in stream, after session event) */
+	readonly sessionId: Promise<string>;
+	/** Usage stats (resolves when stream completes via result event) */
+	readonly usage: Promise<KoineUsage>;
+}

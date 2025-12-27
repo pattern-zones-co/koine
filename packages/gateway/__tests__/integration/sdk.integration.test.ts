@@ -25,6 +25,7 @@ import {
 	createCliResultJson,
 	createMockChildProcess,
 	createStreamAssistantMessage,
+	createStreamEventDelta,
 	createStreamResultMessage,
 } from "../helpers.js";
 
@@ -53,6 +54,8 @@ describe("SDK Integration Tests", () => {
 	// biome-ignore lint/suspicious/noExplicitAny: assigned from dynamic import
 	let streamText: any;
 	// biome-ignore lint/suspicious/noExplicitAny: assigned from dynamic import
+	let streamObject: any;
+	// biome-ignore lint/suspicious/noExplicitAny: assigned from dynamic import
 	let KoineError: any;
 
 	beforeAll(async () => {
@@ -61,6 +64,7 @@ describe("SDK Integration Tests", () => {
 		generateText = sdk.generateText;
 		generateObject = sdk.generateObject;
 		streamText = sdk.streamText;
+		streamObject = sdk.streamObject;
 		KoineError = sdk.KoineError;
 
 		// Import gateway to start the server (after env vars and mocks are set)
@@ -307,6 +311,121 @@ describe("SDK Integration Tests", () => {
 			// Verify session ID - the gateway sends session event first, then result event updates it
 			const sessionId = await result.sessionId;
 			expect(sessionId).toBeDefined();
+		});
+	});
+
+	describe("streamObject", () => {
+		it("streams partial objects via SSE and validates final object", async () => {
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			const personSchema = z.object({
+				name: z.string(),
+				age: z.number(),
+			});
+
+			const promise = streamObject(getConfig(), {
+				prompt: "Generate a person",
+				schema: personSchema,
+			});
+
+			// Simulate streaming JSON response with content_block_delta events
+			// The gateway parses these and sends partial-object SSE events
+			afterSpawnCalled(mockSpawn, () => {
+				// Partial text chunks building up JSON
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamEventDelta('{"name"')}\n`),
+				);
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamEventDelta(':"Alice"')}\n`),
+				);
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamEventDelta(',"age":30}')}\n`),
+				);
+				// Result event with final data
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(
+						`${createStreamResultMessage({ session_id: "stream-obj-session" })}\n`,
+					),
+				);
+				mockProc.exitCode = 0;
+				mockProc.emit("close", 0, null);
+			});
+
+			const result = await promise;
+
+			// Collect partial objects
+			const partials: unknown[] = [];
+			for await (const partial of result.partialObjectStream) {
+				partials.push(partial);
+			}
+
+			// Should have received some partial objects during streaming
+			expect(partials.length).toBeGreaterThan(0);
+
+			// Verify session ID
+			const sessionId = await result.sessionId;
+			expect(sessionId).toBeDefined();
+
+			// Verify final validated object
+			const obj = await result.object;
+			expect(obj.name).toBe("Alice");
+			expect(obj.age).toBe(30);
+
+			// Verify usage
+			const usage = await result.usage;
+			expect(usage.inputTokens).toBe(10);
+			expect(usage.outputTokens).toBe(15);
+		});
+
+		it("validates partial objects against Zod schema", async () => {
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			const personSchema = z.object({
+				name: z.string(),
+				age: z.number(),
+			});
+
+			const promise = streamObject(getConfig(), {
+				prompt: "Generate a person",
+				schema: personSchema,
+			});
+
+			afterSpawnCalled(mockSpawn, () => {
+				// Build up JSON in steps
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamEventDelta('{"name":"Bob","age":25}')}\n`),
+				);
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(
+						`${createStreamResultMessage({ session_id: "validate-session" })}\n`,
+					),
+				);
+				mockProc.exitCode = 0;
+				mockProc.emit("close", 0, null);
+			});
+
+			const result = await promise;
+
+			const partials: unknown[] = [];
+			for await (const partial of result.partialObjectStream) {
+				partials.push(partial);
+			}
+
+			// At least one partial should exist
+			expect(partials.length).toBeGreaterThan(0);
+
+			// Final object should validate
+			const obj = await result.object;
+			expect(obj.name).toBe("Bob");
+			expect(obj.age).toBe(25);
 		});
 	});
 

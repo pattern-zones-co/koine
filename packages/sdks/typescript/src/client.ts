@@ -5,22 +5,28 @@ import {
 	type GenerateObjectResult,
 	generateObject,
 } from "./object.js";
+import { type StreamObjectOptions, streamObject } from "./stream-object.js";
 import { type StreamTextOptions, streamText } from "./stream/index.js";
 import {
 	type GenerateTextOptions,
 	type GenerateTextResult,
 	generateText,
 } from "./text.js";
-import type { KoineConfig, KoineStreamResult } from "./types.js";
+import type {
+	KoineConfig,
+	KoineStreamObjectResult,
+	KoineStreamResult,
+} from "./types.js";
 
 // Re-export functions and types for backwards compatibility
-export { generateText, streamText, generateObject };
+export { generateText, streamText, generateObject, streamObject };
 export type {
 	GenerateTextOptions,
 	GenerateTextResult,
 	StreamTextOptions,
 	GenerateObjectOptions,
 	GenerateObjectResult,
+	StreamObjectOptions,
 };
 
 /**
@@ -56,6 +62,18 @@ export interface KoineClient {
 	generateObject<T>(
 		options: GenerateObjectOptions<T>,
 	): Promise<GenerateObjectResult<T>>;
+
+	/**
+	 * Streams structured JSON objects from Koine gateway service.
+	 *
+	 * @typeParam T - The type of the expected response object, inferred from schema
+	 * @param options - Request options including Zod schema
+	 * @returns KoineStreamObjectResult with partialObjectStream, object, sessionId, usage
+	 * @throws {KoineError} When connection fails or stream encounters an error
+	 */
+	streamObject<T>(
+		options: StreamObjectOptions<T>,
+	): Promise<KoineStreamObjectResult<T>>;
 }
 
 /**
@@ -91,5 +109,7 @@ export function createKoine(config: KoineConfig): KoineClient {
 		streamText: (options) => streamText(config, options),
 		generateObject: <T>(options: GenerateObjectOptions<T>) =>
 			generateObject(config, options),
+		streamObject: <T>(options: StreamObjectOptions<T>) =>
+			streamObject(config, options),
 	};
 }

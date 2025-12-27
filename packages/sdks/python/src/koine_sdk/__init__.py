@@ -33,6 +33,7 @@ from .types import (
     GenerateTextResult,
     KoineConfig,
     KoineUsage,
+    StreamObjectResult,
     StreamTextResult,
 )
 
@@ -44,6 +45,7 @@ __all__ = [
     "KoineError",
     "KoineErrorCode",
     "KoineUsage",
+    "StreamObjectResult",
     "StreamTextResult",
     "create_koine",
 ]

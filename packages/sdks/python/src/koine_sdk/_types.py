@@ -1,6 +1,8 @@
 """Internal type definitions for gateway responses (not part of public API)."""
 
-from pydantic import BaseModel
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict
 
 from .types import KoineUsage
 
@@ -54,3 +56,20 @@ class SSEErrorEvent(BaseModel):
 
     error: str
     code: str | None = None
+
+
+class SSEPartialObjectEvent(BaseModel):
+    """SSE partial-object event from stream-object endpoint (internal)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    partial: str
+    parsed: dict[str, Any] | None
+
+
+class SSEObjectEvent(BaseModel):
+    """SSE object event from stream-object endpoint (internal)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    object: dict[str, Any]

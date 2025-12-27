@@ -6,8 +6,9 @@ from pydantic import BaseModel
 
 from .http import validate_config
 from .object import GenerateObjectResult, generate_object
-from .stream import stream_text
+from .stream import stream_object, stream_text
 from .stream.sse import HTTPStreamContext
+from .stream.stream_object import HTTPObjectStreamContext
 from .text import GenerateTextResult, generate_text
 from .types import KoineConfig
 
@@ -85,6 +86,33 @@ class KoineClient(Protocol):
         """
         ...
 
+    def stream_object(
+        self,
+        *,
+        prompt: str,
+        schema: type[T],
+        system: str | None = None,
+        session_id: str | None = None,
+    ) -> HTTPObjectStreamContext[T]:
+        """Stream structured JSON response.
+
+        Must be used as an async context manager:
+
+            async with koine.stream_object(prompt="...", schema=Model) as result:
+                async for partial in result.partial_object_stream:
+                    print(partial)
+
+        Args:
+            prompt: The user prompt describing what to extract
+            schema: Pydantic model class for response validation
+            system: Optional system prompt
+            session_id: Optional session ID for conversation continuity
+
+        Returns:
+            Async context manager that yields StreamObjectResult[T]
+        """
+        ...
+
 
 class _KoineClientImpl:
     """Implementation of KoineClient protocol."""
@@ -132,6 +160,22 @@ class _KoineClientImpl:
         return stream_text(
             self._config,
             prompt=prompt,
+            system=system,
+            session_id=session_id,
+        )
+
+    def stream_object(
+        self,
+        *,
+        prompt: str,
+        schema: type[T],
+        system: str | None = None,
+        session_id: str | None = None,
+    ) -> HTTPObjectStreamContext[T]:
+        return stream_object(
+            self._config,
+            prompt=prompt,
+            schema=schema,
             system=system,
             session_id=session_id,
         )

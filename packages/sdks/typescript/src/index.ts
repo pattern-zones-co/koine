@@ -23,7 +23,12 @@
  */
 
 // Public types - only export types that users need
-export type { KoineConfig, KoineUsage, KoineStreamResult } from "./types.js";
+export type {
+	KoineConfig,
+	KoineUsage,
+	KoineStreamResult,
+	KoineStreamObjectResult,
+} from "./types.js";
 
 // Errors
 export { KoineError } from "./errors.js";
@@ -38,7 +43,13 @@ export type {
 	StreamTextOptions,
 	GenerateObjectOptions,
 	GenerateObjectResult,
+	StreamObjectOptions,
 } from "./client.js";
 
 // Standalone functions (legacy API - still supported)
-export { generateText, streamText, generateObject } from "./client.js";
+export {
+	generateText,
+	streamText,
+	generateObject,
+	streamObject,
+} from "./client.js";
