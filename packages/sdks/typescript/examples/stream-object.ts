@@ -2,7 +2,8 @@
  * stream-object.ts - streamObject example with real-time partial objects
  *
  * Demonstrates streaming structured data with progressive updates.
- * Partial objects appear as the JSON is built incrementally.
+ * Watch as the travel itinerary builds incrementally - you'll see
+ * partial objects grow as more days and activities are added.
  *
  * Run from packages/sdks/typescript:
  *   bun run example:stream-object
@@ -15,7 +16,6 @@ import {
 } from "@patternzones/koine-sdk";
 import { z } from "zod";
 
-// Bun automatically loads .env from current working directory
 const authKey = process.env.CLAUDE_CODE_GATEWAY_API_KEY;
 if (!authKey) {
 	throw new Error("CLAUDE_CODE_GATEWAY_API_KEY is required in .env");
@@ -29,45 +29,103 @@ const config: KoineConfig = {
 
 const koine = createKoine(config);
 
-// Define the schema for a recipe
-const RecipeSchema = z.object({
-	name: z.string().describe("Name of the recipe"),
-	ingredients: z.array(z.string()).describe("List of ingredients"),
-	steps: z.array(z.string()).describe("Cooking instructions"),
-	prepTime: z.number().describe("Preparation time in minutes"),
-	cookTime: z.number().describe("Cooking time in minutes"),
+// A complex schema that requires generating substantial content
+const TravelItinerarySchema = z.object({
+	destination: z.string().describe("The travel destination"),
+	duration: z.string().describe("Trip duration (e.g., '5 days')"),
+	bestTimeToVisit: z.string().describe("Recommended season or months"),
+	days: z
+		.array(
+			z.object({
+				day: z.number().describe("Day number"),
+				title: z.string().describe("Theme for the day"),
+				activities: z
+					.array(
+						z.object({
+							time: z.string().describe("Time of day"),
+							activity: z.string().describe("What to do"),
+							location: z.string().describe("Where"),
+							tips: z.string().describe("Helpful tips"),
+						}),
+					)
+					.describe("Activities for the day"),
+			}),
+		)
+		.describe("Day-by-day itinerary"),
+	packingList: z.array(z.string()).describe("Essential items to pack"),
+	estimatedBudget: z.string().describe("Approximate budget range"),
 });
 
 async function main() {
-	console.log("Streaming structured object...\n");
+	console.log("Streaming travel itinerary...\n");
+	console.log("Watch as the itinerary builds incrementally:\n");
 
 	const result = await koine.streamObject({
-		prompt: `Extract the recipe from this description:
-
-Make classic pancakes by mixing 1 cup flour, 1 egg, 1 cup milk, and 2 tbsp butter.
-First combine the dry ingredients, then whisk in the wet ingredients until smooth.
-Heat a griddle and pour 1/4 cup batter per pancake. Cook until bubbles form, flip,
-and cook until golden. Takes about 5 minutes to prep and 15 minutes to cook.`,
-		schema: RecipeSchema,
+		prompt: `Create a detailed 5-day travel itinerary for Tokyo, Japan.
+Include 3-4 activities per day with specific times, locations, and practical tips.
+Make sure to include a packing list and budget estimate.`,
+		schema: TravelItinerarySchema,
 	});
 
-	// Watch partial objects as they arrive
+	// Watch partial objects as they arrive - show progress indicator
 	let updateCount = 0;
+	let lastDayCount = 0;
+
 	for await (const partial of result.partialObjectStream) {
 		updateCount++;
-		console.log(`--- Partial update ${updateCount} ---`);
-		console.log(JSON.stringify(partial, null, 2));
-		console.log();
+
+		// Skip null/non-object partials (can happen during early parsing)
+		if (!partial || typeof partial !== "object") {
+			continue;
+		}
+
+		// Show a summary of what we have so far
+		const currentDays = (partial as { days?: unknown[] }).days?.length ?? 0;
+		const destination = (partial as { destination?: string }).destination;
+		const packingItems =
+			(partial as { packingList?: unknown[] }).packingList?.length ?? 0;
+
+		// Only log when something meaningful changes
+		if (currentDays !== lastDayCount || updateCount === 1) {
+			console.log(`[Update ${updateCount}] Building itinerary...`);
+			if (destination) console.log(`  Destination: ${destination}`);
+			if (currentDays > 0) console.log(`  Days planned: ${currentDays}/5`);
+			if (packingItems > 0) console.log(`  Packing items: ${packingItems}`);
+			console.log();
+			lastDayCount = currentDays;
+		}
 	}
 
 	// Get the final validated object
-	const finalObject = await result.object;
-	console.log("=== Final validated object ===");
-	console.log(JSON.stringify(finalObject, null, 2));
+	const itinerary = await result.object;
+
+	console.log(`\n${"=".repeat(60)}`);
+	console.log("COMPLETE TRAVEL ITINERARY");
+	console.log(`${"=".repeat(60)}\n`);
+
+	console.log(`Destination: ${itinerary.destination}`);
+	console.log(`Duration: ${itinerary.duration}`);
+	console.log(`Best time to visit: ${itinerary.bestTimeToVisit}`);
+	console.log(`Estimated budget: ${itinerary.estimatedBudget}\n`);
+
+	for (const day of itinerary.days) {
+		console.log(`--- Day ${day.day}: ${day.title} ---`);
+		for (const activity of day.activities) {
+			console.log(`  ${activity.time} - ${activity.activity}`);
+			console.log(`    Location: ${activity.location}`);
+			console.log(`    Tip: ${activity.tips}`);
+		}
+		console.log();
+	}
+
+	console.log("Packing list:");
+	for (const item of itinerary.packingList) {
+		console.log(`  - ${item}`);
+	}
 
 	const usage = await result.usage;
 	console.log(
-		`\nTokens used: ${usage.totalTokens} (input: ${usage.inputTokens}, output: ${usage.outputTokens})`,
+		`\n[${updateCount} streaming updates, ${usage.totalTokens} tokens]`,
 	);
 }
 
@@ -79,16 +137,9 @@ main().catch((error) => {
 			if (error.rawText) {
 				console.error(`  -> Raw response: ${error.rawText}`);
 			}
-		} else if (error.code === "HTTP_ERROR" && error.message.includes("401")) {
-			console.error("  -> Check that CLAUDE_CODE_GATEWAY_API_KEY is correct");
-		} else if (error.code === "STREAM_ERROR") {
-			console.error("  -> The stream was interrupted");
 		}
 	} else if (error?.cause?.code === "ECONNREFUSED") {
 		console.error("\nConnection refused. Is the gateway running?");
-		console.error(
-			"  -> Start it with: docker run -d --env-file .env -p 3100:3100 ghcr.io/pattern-zones-co/koine:latest",
-		);
 	} else {
 		console.error("\nUnexpected error:", error);
 	}

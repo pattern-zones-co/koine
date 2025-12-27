@@ -102,7 +102,7 @@ describe("Stream Object Route", () => {
 			expect(res.headers["x-accel-buffering"]).toBe("no");
 		});
 
-		it("passes schema to CLI as --json-schema", async () => {
+		it("injects schema into prompt instead of using --json-schema", async () => {
 			const mockProc = createMockChildProcess();
 			mockSpawn.mockReturnValue(mockProc as never);
 
@@ -117,11 +117,15 @@ describe("Stream Object Route", () => {
 
 			await responsePromise;
 
-			expect(mockSpawn).toHaveBeenCalledWith(
-				"claude",
-				expect.arrayContaining(["--json-schema", JSON.stringify(validSchema)]),
-				expect.any(Object),
-			);
+			// Should NOT use --json-schema flag (it doesn't stream JSON tokens)
+			const args = mockSpawn.mock.calls[0][1] as string[];
+			expect(args).not.toContain("--json-schema");
+
+			// Schema should be in the prompt (last argument)
+			const prompt = args[args.length - 1];
+			expect(prompt).toContain("Extract info");
+			expect(prompt).toContain("JSON Schema:");
+			expect(prompt).toContain('"type": "object"');
 		});
 
 		it("emits session event with sessionId", async () => {
@@ -190,7 +194,7 @@ describe("Stream Object Route", () => {
 			).toBe("Alice");
 		});
 
-		it("emits object event with final structured output", async () => {
+		it("emits object event with final parsed JSON from accumulated text", async () => {
 			const mockProc = createMockChildProcess();
 			mockSpawn.mockReturnValue(mockProc as never);
 
@@ -200,13 +204,16 @@ describe("Stream Object Route", () => {
 				.send({ prompt: "Extract info", schema: validSchema });
 
 			afterSpawnCalled(mockSpawn, () => {
+				// Stream JSON as text deltas (prompt injection approach)
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(
-						`${createStreamResultMessage({
-							structured_output: { name: "Bob", age: 25 },
-						})}\n`,
+						`${createStreamEventDelta('{"name": "Bob", "age": 25}')}\n`,
 					),
+				);
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamResultMessage()}\n`),
 				);
 				mockProc.emit("close", 0, null);
 			});
@@ -231,12 +238,18 @@ describe("Stream Object Route", () => {
 				.send({ prompt: "Extract info", schema: validSchema });
 
 			afterSpawnCalled(mockSpawn, () => {
+				// Stream JSON text, then result with usage
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(
+						`${createStreamEventDelta('{"name": "Test", "age": 20}')}\n`,
+					),
+				);
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(
 						`${createStreamResultMessage({
 							usage: { input_tokens: 15, output_tokens: 25 },
-							structured_output: { name: "Test", age: 20 },
 						})}\n`,
 					),
 				);
@@ -421,11 +434,7 @@ describe("Stream Object Route", () => {
 				mockProc.stdout.emit("data", Buffer.from(`${fullMessage.slice(20)}\n`));
 				mockProc.stdout.emit(
 					"data",
-					Buffer.from(
-						`${createStreamResultMessage({
-							structured_output: { name: "Test" },
-						})}\n`,
-					),
+					Buffer.from(`${createStreamResultMessage()}\n`),
 				);
 				mockProc.emit("close", 0, null);
 			});
@@ -437,7 +446,7 @@ describe("Stream Object Route", () => {
 			expect(partialEvents.length).toBeGreaterThan(0);
 		});
 
-		it("falls back to accumulated JSON when structured_output is missing", async () => {
+		it("parses accumulated JSON text from stream deltas", async () => {
 			const mockProc = createMockChildProcess();
 			mockSpawn.mockReturnValue(mockProc as never);
 
@@ -447,11 +456,11 @@ describe("Stream Object Route", () => {
 				.send({ prompt: "Extract info", schema: validSchema });
 
 			afterSpawnCalled(mockSpawn, () => {
-				// Stream JSON without structured_output in result
+				// Stream JSON as text deltas (normal prompt injection behavior)
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(
-						`${createStreamEventDelta('{"name": "Fallback", "age": 99}')}\n`,
+						`${createStreamEventDelta('{"name": "Parsed", "age": 99}')}\n`,
 					),
 				);
 				mockProc.stdout.emit(
@@ -468,10 +477,10 @@ describe("Stream Object Route", () => {
 			expect(objectEvent).toBeDefined();
 			expect(
 				(objectEvent?.data as { object: { name: string; age: number } }).object,
-			).toEqual({ name: "Fallback", age: 99 });
+			).toEqual({ name: "Parsed", age: 99 });
 		});
 
-		it("includes system prompt when provided", async () => {
+		it("includes enhanced system prompt with JSON instructions", async () => {
 			const mockProc = createMockChildProcess();
 			mockSpawn.mockReturnValue(mockProc as never);
 
@@ -488,11 +497,13 @@ describe("Stream Object Route", () => {
 
 			await responsePromise;
 
-			expect(mockSpawn).toHaveBeenCalledWith(
-				"claude",
-				expect.arrayContaining(["--system-prompt", "Be helpful"]),
-				expect.any(Object),
-			);
+			// System prompt should be enhanced with JSON generator instructions
+			const args = mockSpawn.mock.calls[0][1] as string[];
+			const systemIdx = args.indexOf("--system-prompt");
+			expect(systemIdx).toBeGreaterThan(-1);
+			const systemPrompt = args[systemIdx + 1];
+			expect(systemPrompt).toContain("Be helpful");
+			expect(systemPrompt).toContain("JSON generator");
 		});
 
 		it("avoids duplicate partial-object events for same parsed state", async () => {
@@ -516,11 +527,11 @@ describe("Stream Object Route", () => {
 				);
 				mockProc.stdout.emit(
 					"data",
-					Buffer.from(
-						`${createStreamResultMessage({
-							structured_output: { name: "Same" },
-						})}\n`,
-					),
+					Buffer.from(`${createStreamEventDelta("}")}\n`), // Complete the JSON - same parsed object
+				);
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamResultMessage()}\n`),
 				);
 				mockProc.emit("close", 0, null);
 			});
@@ -529,7 +540,9 @@ describe("Stream Object Route", () => {
 			const events = parseSSEResponse(res.text);
 
 			const partialEvents = events.filter((e) => e.event === "partial-object");
-			// Should only have one partial-object event since empty delta doesn't change state
+			// Should only have ONE partial-object event because the parsed JSON
+			// {"name": "Same"} is the same whether the closing brace is missing or not
+			// (partial-json completes incomplete objects)
 			expect(partialEvents.length).toBe(1);
 		});
 
@@ -543,10 +556,15 @@ describe("Stream Object Route", () => {
 				.send({ prompt: "Hello", schema: validSchema });
 
 			afterSpawnCalled(mockSpawn, () => {
+				// Stream JSON text first
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(
+						`${createStreamEventDelta('{"name": "BufferTest", "age": 42}')}\n`,
+					),
+				);
 				// Send a result message without trailing newline (stays in buffer)
-				const resultMessage = createStreamResultMessage({
-					structured_output: { name: "BufferTest", age: 42 },
-				});
+				const resultMessage = createStreamResultMessage();
 				mockProc.stdout.emit("data", Buffer.from(resultMessage));
 				mockProc.emit("close", 0, null);
 			});
@@ -571,15 +589,17 @@ describe("Stream Object Route", () => {
 				.send({ prompt: "Hello", schema: validSchema });
 
 			afterSpawnCalled(mockSpawn, () => {
-				// Send malformed JSON line followed by valid result
+				// Send malformed JSON line followed by valid JSON stream
 				mockProc.stdout.emit("data", Buffer.from("not valid json at all\n"));
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(
-						`${createStreamResultMessage({
-							structured_output: { name: "AfterMalformed", age: 1 },
-						})}\n`,
+						`${createStreamEventDelta('{"name": "AfterMalformed", "age": 1}')}\n`,
 					),
+				);
+				mockProc.stdout.emit(
+					"data",
+					Buffer.from(`${createStreamResultMessage()}\n`),
 				);
 				mockProc.emit("close", 0, null);
 			});
@@ -595,7 +615,7 @@ describe("Stream Object Route", () => {
 			).toBe("AfterMalformed");
 		});
 
-		it("emits error when structured_output missing and JSON parse fails", async () => {
+		it("emits error when accumulated JSON is invalid", async () => {
 			const mockProc = createMockChildProcess();
 			mockSpawn.mockReturnValue(mockProc as never);
 
@@ -610,7 +630,7 @@ describe("Stream Object Route", () => {
 					"data",
 					Buffer.from(`${createStreamEventDelta("{{{invalid json")}\n`),
 				);
-				// Send result without structured_output - should trigger fallback parse failure
+				// Send result - should trigger parse failure on accumulated JSON
 				mockProc.stdout.emit(
 					"data",
 					Buffer.from(`${createStreamResultMessage()}\n`),

@@ -48,10 +48,16 @@ const router: Router = Router();
  * POST /stream-object
  *
  * Streams partial JSON objects from Claude CLI using Server-Sent Events (SSE).
- * Accumulates JSON tokens and parses partial objects as they arrive.
+ * Uses prompt injection to instruct Claude to output JSON, then parses partial
+ * objects as tokens arrive using the partial-json library.
+ *
+ * NOTE: We use prompt injection rather than --json-schema because the CLI's
+ * constrained decoding mode doesn't stream JSON tokens incrementally - it only
+ * provides the complete object at the end. See:
+ * https://github.com/anthropics/claude-code/issues/15511
  *
  * Features:
- * - Partial JSON parsing with partial-json library
+ * - Real-time partial JSON parsing with partial-json library
  * - Execution timeout (10 minutes default)
  * - Line buffering for TCP chunk handling
  * - Proper cleanup on client disconnect
@@ -90,8 +96,8 @@ router.post(
 		let isResponseClosed = false;
 		let timeoutId: NodeJS.Timeout | undefined;
 
-		// Build CLI arguments
-		const args = buildStreamObjectArgs({
+		// Build CLI arguments with prompt injection for JSON output
+		const { args } = buildStreamObjectArgs({
 			prompt,
 			system,
 			sessionId,
@@ -186,6 +192,9 @@ router.post(
 		// Track last successfully parsed object to avoid duplicate events
 		let lastParsedJson = "";
 
+		// Track if we've sent the final object event
+		let objectEventSent = false;
+
 		// Collect stderr for error reporting (but don't spam events)
 		let stderrOutput = "";
 
@@ -203,6 +212,7 @@ router.post(
 
 				try {
 					const parsed = JSON.parse(line) as StreamMessage;
+
 					if (
 						parsed.type === "stream_event" &&
 						parsed.event?.type === "content_block_delta" &&
@@ -241,36 +251,29 @@ router.post(
 							}
 						}
 					} else if (parsed.type === "result") {
-						// Final result - emit the complete object
-						if (parsed.structured_output !== undefined) {
-							safeSendEvent("object", {
-								object: parsed.structured_output,
-							});
-						} else if (accumulatedJson) {
-							// Fall back to parsing accumulated JSON
+						// Final result - parse the accumulated JSON text
+						if (accumulatedJson && !objectEventSent) {
 							try {
-								const finalObject = JSON.parse(accumulatedJson);
+								const finalObject = parseJsonResponse(accumulatedJson);
 								safeSendEvent("object", {
 									object: finalObject,
 								});
-							} catch (fallbackError) {
+								objectEventSent = true;
+							} catch (parseError) {
 								logger.warn("Failed to parse final accumulated JSON", {
 									accumulatedLength: accumulatedJson.length,
 									error:
-										fallbackError instanceof Error
-											? fallbackError.message
-											: String(fallbackError),
+										parseError instanceof Error
+											? parseError.message
+											: String(parseError),
 								});
 								safeSendEvent("error", {
 									error: "Failed to parse final JSON object",
 									code: "PARSE_ERROR",
 								});
 							}
-						} else {
-							// No structured_output and no accumulated JSON - unexpected state
-							logger.warn(
-								"Result received without structured_output or accumulated JSON",
-							);
+						} else if (!objectEventSent) {
+							logger.warn("Result received without accumulated JSON");
 							safeSendEvent("error", {
 								error: "No object data received from CLI",
 								code: "PARSE_ERROR",
@@ -323,10 +326,15 @@ router.post(
 				try {
 					const parsed = JSON.parse(lineBuffer) as StreamMessage;
 					if (parsed.type === "result") {
-						if (parsed.structured_output !== undefined) {
-							safeSendEvent("object", {
-								object: parsed.structured_output,
-							});
+						// If we haven't sent the object yet, parse accumulated JSON
+						if (accumulatedJson && !objectEventSent) {
+							try {
+								const finalObject = parseJsonResponse(accumulatedJson);
+								safeSendEvent("object", { object: finalObject });
+								objectEventSent = true;
+							} catch {
+								// Error already logged in main handler
+							}
 						}
 						safeSendEvent("result", {
 							sessionId: parsed.session_id || currentSessionId,
@@ -413,7 +421,53 @@ router.post(
 );
 
 /**
+ * Attempts to parse JSON from Claude's response.
+ * Handles common edge cases like markdown code blocks.
+ */
+function parseJsonResponse(text: string): unknown {
+	// Try direct parse first
+	try {
+		return JSON.parse(text);
+	} catch {
+		// Continue to fallback strategies
+	}
+
+	// Strip markdown code blocks if present
+	const jsonBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+	if (jsonBlockMatch) {
+		try {
+			return JSON.parse(jsonBlockMatch[1].trim());
+		} catch {
+			// Continue to next strategy
+		}
+	}
+
+	// Try to find JSON object in the response
+	const objectMatch = text.match(/\{[\s\S]*\}/);
+	if (objectMatch) {
+		try {
+			return JSON.parse(objectMatch[0]);
+		} catch {
+			// Continue to next strategy
+		}
+	}
+
+	// Try to find JSON array in the response
+	const arrayMatch = text.match(/\[[\s\S]*\]/);
+	if (arrayMatch) {
+		try {
+			return JSON.parse(arrayMatch[0]);
+		} catch {
+			// Fall through to error
+		}
+	}
+
+	throw new Error("Failed to parse JSON from response");
+}
+
+/**
  * Builds CLI arguments for stream-object mode.
+ * Uses prompt injection to instruct Claude to output JSON matching the schema.
  * Note: --verbose is required when using --output-format stream-json with --print
  */
 function buildStreamObjectArgs(options: {
@@ -422,7 +476,20 @@ function buildStreamObjectArgs(options: {
 	sessionId?: string;
 	model?: string;
 	schema: Record<string, unknown>;
-}): string[] {
+}): { args: string[]; enhancedPrompt: string; enhancedSystem: string } {
+	// Build enhanced prompt that instructs Claude to output JSON matching schema
+	const schemaString = JSON.stringify(options.schema, null, 2);
+	const enhancedPrompt = `${options.prompt}
+
+IMPORTANT: You MUST respond with ONLY valid JSON that matches this schema. No markdown, no explanations, no code blocks, just the raw JSON object.
+
+JSON Schema:
+${schemaString}`;
+
+	const enhancedSystem = options.system
+		? `${options.system}\n\nYou are a JSON generator. Always respond with valid JSON matching the provided schema. Output ONLY the JSON object, nothing else.`
+		: "You are a JSON generator. Always respond with valid JSON matching the provided schema. Output ONLY the JSON object, nothing else.";
+
 	// --verbose is required for stream-json output with --print
 	// --include-partial-messages enables progressive token streaming
 	const args: string[] = [
@@ -431,8 +498,6 @@ function buildStreamObjectArgs(options: {
 		"--output-format",
 		"stream-json",
 		"--include-partial-messages",
-		"--json-schema",
-		JSON.stringify(options.schema),
 	];
 
 	// Model selection (alias like 'sonnet' or full name)
@@ -440,18 +505,16 @@ function buildStreamObjectArgs(options: {
 		args.push("--model", options.model);
 	}
 
-	if (options.system) {
-		args.push("--system-prompt", options.system);
-	}
+	args.push("--system-prompt", enhancedSystem);
 
 	// Resume specific session by ID
 	if (options.sessionId) {
 		args.push("--resume", options.sessionId);
 	}
 
-	args.push(options.prompt);
+	args.push(enhancedPrompt);
 
-	return args;
+	return { args, enhancedPrompt, enhancedSystem };
 }
 
 export default router;

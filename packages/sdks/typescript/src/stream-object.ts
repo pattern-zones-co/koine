@@ -150,6 +150,13 @@ export async function streamObject<T>(
 								const parsed = JSON.parse(
 									sseEvent.data,
 								) as SSEPartialObjectEvent;
+								// Skip null/non-object partials (can happen during early JSON parsing)
+								if (
+									parsed.parsed === null ||
+									typeof parsed.parsed !== "object"
+								) {
+									break;
+								}
 								// Try to validate partial object with Zod (warn on failure, don't stop)
 								const partialResult = options.schema.safeParse(parsed.parsed);
 								if (partialResult.success) {
