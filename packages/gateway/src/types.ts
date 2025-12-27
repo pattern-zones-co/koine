@@ -120,14 +120,12 @@ export interface ClaudeCliOutput {
 	is_error?: boolean;
 	session_id?: string;
 	num_turns?: number;
-	// New format (Claude CLI 1.0.17+)
 	usage?: {
 		input_tokens?: number;
 		output_tokens?: number;
 		cache_creation_input_tokens?: number;
 		cache_read_input_tokens?: number;
 	};
-	// Legacy format (kept for backwards compatibility)
-	total_tokens_in?: number;
-	total_tokens_out?: number;
+	// Structured output from --json-schema flag
+	structured_output?: unknown;
 }

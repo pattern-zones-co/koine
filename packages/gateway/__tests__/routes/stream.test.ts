@@ -148,8 +148,7 @@ describe("Stream Route", () => {
 					"data",
 					Buffer.from(
 						`${createStreamResultMessage({
-							total_tokens_in: 10,
-							total_tokens_out: 20,
+							usage: { input_tokens: 10, output_tokens: 20 },
 						})}\n`,
 					),
 				);
@@ -398,8 +397,7 @@ describe("Stream Route", () => {
 				const resultMsg = JSON.stringify({
 					type: "result",
 					session_id: "buffered-session",
-					total_tokens_in: 5,
-					total_tokens_out: 10,
+					usage: { input_tokens: 5, output_tokens: 10 },
 				});
 				mockProc.stdout.emit("data", Buffer.from(resultMsg));
 				// Close without newline - buffer should be processed in close handler

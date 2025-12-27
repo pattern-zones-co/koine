@@ -56,6 +56,8 @@ export interface ClaudeCliOptions {
 	model?: string;
 	/** User email for tool proxy access (enables Claude skills to call Inbox Zero tools) */
 	userEmail?: string;
+	/** JSON schema for constrained decoding (guarantees valid JSON output) */
+	jsonSchema?: Record<string, unknown>;
 }
 
 export interface ClaudeCliResult {
@@ -202,6 +204,11 @@ function buildCliArgs(options: ClaudeCliOptions): string[] {
 	// Note: --max-tokens is not supported by Claude CLI
 	// Use --max-budget-usd for budget control if needed in future
 
+	// JSON schema for constrained decoding
+	if (options.jsonSchema) {
+		args.push("--json-schema", JSON.stringify(options.jsonSchema));
+	}
+
 	// The prompt itself
 	args.push(options.prompt);
 
@@ -253,14 +260,18 @@ function parseCliOutput(
 		);
 	}
 
-	// Extract usage - prefer new format, fall back to legacy
-	const inputTokens =
-		resultOutput.usage?.input_tokens ?? resultOutput.total_tokens_in ?? 0;
-	const outputTokens =
-		resultOutput.usage?.output_tokens ?? resultOutput.total_tokens_out ?? 0;
+	const inputTokens = resultOutput.usage?.input_tokens ?? 0;
+	const outputTokens = resultOutput.usage?.output_tokens ?? 0;
+
+	// For structured output (--json-schema), use the structured_output field
+	// Otherwise, fall back to the result field
+	const text =
+		resultOutput.structured_output !== undefined
+			? JSON.stringify(resultOutput.structured_output)
+			: resultOutput.result || "";
 
 	return {
-		text: resultOutput.result || "",
+		text,
 		usage: {
 			inputTokens,
 			outputTokens,

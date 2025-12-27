@@ -23,8 +23,10 @@ interface StreamAssistantMessage {
 interface StreamResultMessage {
 	type: "result";
 	session_id?: string;
-	total_tokens_in?: number;
-	total_tokens_out?: number;
+	usage?: {
+		input_tokens?: number;
+		output_tokens?: number;
+	};
 }
 
 /**
@@ -216,14 +218,14 @@ router.post(
 						}
 					} else if (parsed.type === "result") {
 						// Final result
+						const inputTokens = parsed.usage?.input_tokens ?? 0;
+						const outputTokens = parsed.usage?.output_tokens ?? 0;
 						safeSendEvent("result", {
 							sessionId: parsed.session_id || currentSessionId,
 							usage: {
-								inputTokens: parsed.total_tokens_in || 0,
-								outputTokens: parsed.total_tokens_out || 0,
-								totalTokens:
-									(parsed.total_tokens_in || 0) +
-									(parsed.total_tokens_out || 0),
+								inputTokens,
+								outputTokens,
+								totalTokens: inputTokens + outputTokens,
 							},
 						});
 					}
@@ -261,14 +263,14 @@ router.post(
 				try {
 					const parsed = JSON.parse(lineBuffer) as StreamMessage;
 					if (parsed.type === "result") {
+						const inputTokens = parsed.usage?.input_tokens ?? 0;
+						const outputTokens = parsed.usage?.output_tokens ?? 0;
 						safeSendEvent("result", {
 							sessionId: parsed.session_id || currentSessionId,
 							usage: {
-								inputTokens: parsed.total_tokens_in || 0,
-								outputTokens: parsed.total_tokens_out || 0,
-								totalTokens:
-									(parsed.total_tokens_in || 0) +
-									(parsed.total_tokens_out || 0),
+								inputTokens,
+								outputTokens,
+								totalTokens: inputTokens + outputTokens,
 							},
 						});
 					}

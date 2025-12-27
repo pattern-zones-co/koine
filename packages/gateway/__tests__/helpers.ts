@@ -83,9 +83,11 @@ export function createCliResultOutput(
 		type: "result",
 		result: "Hello! How can I help you today?",
 		session_id: "test-session-123",
-		total_tokens_in: 10,
-		total_tokens_out: 15,
-		cost_usd: 0.001,
+		usage: {
+			input_tokens: 10,
+			output_tokens: 15,
+		},
+		total_cost_usd: 0.001,
 		duration_ms: 500,
 		...overrides,
 	};
@@ -118,15 +120,16 @@ export function createStreamAssistantMessage(text: string): string {
 export function createStreamResultMessage(
 	overrides: Partial<{
 		session_id: string;
-		total_tokens_in: number;
-		total_tokens_out: number;
+		usage: { input_tokens: number; output_tokens: number };
 	}> = {},
 ): string {
 	return JSON.stringify({
 		type: "result",
 		session_id: "test-session-123",
-		total_tokens_in: 10,
-		total_tokens_out: 15,
+		usage: {
+			input_tokens: 10,
+			output_tokens: 15,
+		},
 		...overrides,
 	});
 }

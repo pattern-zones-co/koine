@@ -140,6 +140,24 @@ describe("CLI Module", () => {
 			);
 		});
 
+		it("includes --json-schema when jsonSchema option is provided", async () => {
+			const mockProc = createMockChildProcess();
+			mockSpawn.mockReturnValue(mockProc as never);
+
+			const schema = {
+				type: "object",
+				properties: { name: { type: "string" } },
+			};
+
+			executeClaudeCli({ prompt: "Test", jsonSchema: schema });
+
+			expect(mockSpawn).toHaveBeenCalledWith(
+				"claude",
+				expect.arrayContaining(["--json-schema", JSON.stringify(schema)]),
+				expect.any(Object),
+			);
+		});
+
 		it("throws ClaudeCliError on non-zero exit code", async () => {
 			const mockProc = createMockChildProcess();
 			mockSpawn.mockReturnValue(mockProc as never);
@@ -252,8 +270,7 @@ describe("CLI Module", () => {
 				JSON.stringify({
 					type: "result",
 					result: "Hello",
-					total_tokens_in: 5,
-					total_tokens_out: 5,
+					usage: { input_tokens: 5, output_tokens: 5 },
 				}),
 			);
 

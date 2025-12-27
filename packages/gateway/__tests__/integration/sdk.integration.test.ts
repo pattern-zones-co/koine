@@ -109,8 +109,7 @@ describe("SDK Integration Tests", () => {
 					Buffer.from(
 						createCliResultJson({
 							result: "Hello from Claude!",
-							total_tokens_in: 10,
-							total_tokens_out: 5,
+							usage: { input_tokens: 10, output_tokens: 5 },
 						}),
 					),
 				);
