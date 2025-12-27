@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { streamObject } from "../src/client.js";
 import {
+	createDelayedMockSSEResponse,
 	createMockResponse,
 	createMockSSEResponse,
 	originalFetch,
@@ -548,5 +549,80 @@ describe("streamObject", () => {
 			code: "NO_OBJECT",
 			message: "Stream ended without final object",
 		});
+	});
+
+	it("should abort stream when signal is triggered mid-stream", async () => {
+		const controller = new AbortController();
+
+		// Create a slow stream with many events and delays
+		const events = [
+			{ event: "session", data: { sessionId: "abort-session" } },
+			{
+				event: "partial-object",
+				data: { partial: '{"name":"A', parsed: { name: "A" } },
+			},
+			{
+				event: "partial-object",
+				data: { partial: '{"name":"Ab', parsed: { name: "Ab" } },
+			},
+			{
+				event: "partial-object",
+				data: { partial: '{"name":"Abo', parsed: { name: "Abo" } },
+			},
+			{
+				event: "partial-object",
+				data: { partial: '{"name":"Abor', parsed: { name: "Abor" } },
+			},
+			{
+				event: "partial-object",
+				data: { partial: '{"name":"Abort', parsed: { name: "Abort" } },
+			},
+			{ event: "object", data: { object: { name: "Aborted", age: 99 } } },
+			{
+				event: "result",
+				data: {
+					sessionId: "abort-session",
+					usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+				},
+			},
+			{ event: "done", data: { code: 0 } },
+		];
+
+		// Use delayed mock that respects abort signal
+		// Pass the abort signal to the mock so it can react to abortion
+		global.fetch = vi.fn().mockImplementation((_url, options) => {
+			return Promise.resolve(
+				createDelayedMockSSEResponse(events, 50, options?.signal),
+			);
+		});
+
+		const result = await streamObject(testConfig, {
+			prompt: "test",
+			schema: testSchema,
+			signal: controller.signal,
+		});
+
+		// Collect partial objects and abort after receiving a couple
+		const partials: unknown[] = [];
+		let abortError: Error | null = null;
+
+		try {
+			for await (const partial of result.partialObjectStream) {
+				partials.push(partial);
+				// Abort after receiving 2 partial objects
+				if (partials.length >= 2) {
+					controller.abort();
+				}
+			}
+		} catch (error) {
+			abortError = error as Error;
+		}
+
+		// Should have received some partial objects before abort
+		expect(partials.length).toBeGreaterThanOrEqual(2);
+
+		// Stream iteration should have thrown due to abort
+		expect(abortError).toBeDefined();
+		expect(abortError?.name).toBe("AbortError");
 	});
 });
