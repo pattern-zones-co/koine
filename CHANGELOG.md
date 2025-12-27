@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.3.0](https://github.com/pattern-zones-co/koine/compare/v2.2.0...v2.3.0) (2025-12-27)
+
+
+### Features
+
+* **gateway:** add allowedTools support for tool restrictions ([#83](https://github.com/pattern-zones-co/koine/issues/83)) ([a4b0a5e](https://github.com/pattern-zones-co/koine/commit/a4b0a5edcf0c32453e4e5f3e27848944a557edb4))
+
+
+### Documentation
+
+* add stream-object documentation across all guides ([#81](https://github.com/pattern-zones-co/koine/issues/81)) ([4936e60](https://github.com/pattern-zones-co/koine/commit/4936e602e2d800dd1ca65e8fbe264bd098642a32))
+
 ## [2.2.0](https://github.com/pattern-zones-co/koine/compare/v2.1.0...v2.2.0) (2025-12-27)
 
 
