@@ -463,3 +463,179 @@ class TestStreamObject:
                     pass
 
         assert "invalid response" in str(exc_info.value).lower()
+
+    async def test_session_id_from_result_event(
+        self, httpx_mock: HTTPXMock, config: KoineConfig
+    ):
+        """When no session event arrives, sessionId should be resolved from result."""
+        usage = {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2}
+        sse_data = sse_response(
+            [
+                # No session event!
+                (
+                    "partial-object",
+                    {"partial": '{"name":"Test"', "parsed": {"name": "Test"}},
+                ),
+                ("object", {"object": {"name": "Test", "age": 1}}),
+                ("result", {"sessionId": "result-session-id", "usage": usage}),
+                ("done", {"code": 0}),
+            ]
+        )
+
+        httpx_mock.add_response(
+            url="http://localhost:3100/stream-object",
+            text=sse_data,
+            headers={"content-type": "text/event-stream"},
+        )
+
+        koine = create_koine(config)
+        async with koine.stream_object(prompt="test", schema=Person) as result:
+            async for _ in result.partial_object_stream:
+                pass
+
+            # sessionId should be resolved from result event
+            assert await result.session_id() == "result-session-id"
+
+    async def test_session_id_rejected_on_error_before_session(
+        self, httpx_mock: HTTPXMock, config: KoineConfig
+    ):
+        """When error arrives before session event, sessionId future should reject."""
+        sse_data = sse_response(
+            [
+                # No session event before error!
+                ("error", {"error": "Early failure", "code": "STREAM_ERROR"}),
+            ]
+        )
+
+        httpx_mock.add_response(
+            url="http://localhost:3100/stream-object",
+            text=sse_data,
+            headers={"content-type": "text/event-stream"},
+        )
+
+        koine = create_koine(config)
+        async with koine.stream_object(prompt="test", schema=Person) as result:
+            with pytest.raises(KoineError) as exc_info:
+                async for _ in result.partial_object_stream:
+                    pass
+
+            assert exc_info.value.code == "STREAM_ERROR"
+
+            # All futures should reject with the same error
+            with pytest.raises(KoineError) as exc_info:
+                await result.session_id()
+            assert exc_info.value.code == "STREAM_ERROR"
+
+            with pytest.raises(KoineError):
+                await result.object()
+            with pytest.raises(KoineError):
+                await result.usage()
+
+    async def test_critical_sse_parse_error(
+        self, httpx_mock: HTTPXMock, config: KoineConfig
+    ):
+        """When critical SSE event has malformed JSON, all futures should reject."""
+        # Malformed JSON in session event (critical)
+        sse_data = "event: session\ndata: {invalid json}\n\n"
+
+        httpx_mock.add_response(
+            url="http://localhost:3100/stream-object",
+            text=sse_data,
+            headers={"content-type": "text/event-stream"},
+        )
+
+        koine = create_koine(config)
+        async with koine.stream_object(prompt="test", schema=Person) as result:
+            with pytest.raises(KoineError) as exc_info:
+                async for _ in result.partial_object_stream:
+                    pass
+
+            assert exc_info.value.code == "SSE_PARSE_ERROR"
+
+            # All futures should be rejected
+            with pytest.raises(KoineError) as exc_info:
+                await result.session_id()
+            assert exc_info.value.code == "SSE_PARSE_ERROR"
+
+            with pytest.raises(KoineError) as exc_info:
+                await result.object()
+            assert exc_info.value.code == "SSE_PARSE_ERROR"
+
+            with pytest.raises(KoineError) as exc_info:
+                await result.usage()
+            assert exc_info.value.code == "SSE_PARSE_ERROR"
+
+    async def test_noncritical_sse_parse_error_continues(
+        self, httpx_mock: HTTPXMock, config: KoineConfig
+    ):
+        """When partial-object has malformed JSON, stream should continue."""
+        usage = {"inputTokens": 1, "outputTokens": 1, "totalTokens": 2}
+        partial_data = {"partial": '{"name":"Bob"', "parsed": {"name": "Bob"}}
+        # Mix of malformed and valid events
+        sse_data = (
+            "event: session\n"
+            + f"data: {json.dumps({'sessionId': 's'})}\n\n"
+            + "event: partial-object\n"
+            + "data: {malformed json\n\n"  # Malformed, should log and continue
+            + "event: partial-object\n"
+            + f"data: {json.dumps(partial_data)}\n\n"
+            + "event: object\n"
+            + f"data: {json.dumps({'object': {'name': 'Bob', 'age': 25}})}\n\n"
+            + "event: result\n"
+            + f"data: {json.dumps({'sessionId': 's', 'usage': usage})}\n\n"
+            + "event: done\n"
+            + f"data: {json.dumps({'code': 0})}\n\n"
+        )
+
+        httpx_mock.add_response(
+            url="http://localhost:3100/stream-object",
+            text=sse_data,
+            headers={"content-type": "text/event-stream"},
+        )
+
+        koine = create_koine(config)
+        async with koine.stream_object(prompt="test", schema=Person) as result:
+            partials = []
+            async for partial in result.partial_object_stream:
+                partials.append(partial)
+
+            # Should have received the valid partial
+            assert len(partials) == 1
+
+            # Final object should still resolve
+            obj = await result.object()
+            assert obj.name == "Bob"
+            assert obj.age == 25
+
+    async def test_no_session_event_no_result_event(
+        self, httpx_mock: HTTPXMock, config: KoineConfig
+    ):
+        """When stream ends without session or result, NO_SESSION error."""
+        sse_data = sse_response(
+            [
+                # No session event, no result event!
+                ("object", {"object": {"name": "Test", "age": 1}}),
+                ("done", {"code": 0}),
+            ]
+        )
+
+        httpx_mock.add_response(
+            url="http://localhost:3100/stream-object",
+            text=sse_data,
+            headers={"content-type": "text/event-stream"},
+        )
+
+        koine = create_koine(config)
+        async with koine.stream_object(prompt="test", schema=Person) as result:
+            async for _ in result.partial_object_stream:
+                pass
+
+            # sessionId should reject with NO_SESSION
+            with pytest.raises(KoineError) as exc_info:
+                await result.session_id()
+            assert exc_info.value.code == "NO_SESSION"
+
+            # usage should reject with NO_USAGE
+            with pytest.raises(KoineError) as exc_info:
+                await result.usage()
+            assert exc_info.value.code == "NO_USAGE"
