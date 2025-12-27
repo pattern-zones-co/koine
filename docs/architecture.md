@@ -14,6 +14,7 @@
 │  │ /stream           → Stream text via SSE                             ││
 │  │ /stream-object    → Stream structured JSON via SSE                  ││
 │  │ /health           → Health check                                    ││
+│  │ /docs             → API inspection and testing                      ││
 │  └─────────────────────────────────────────────────────────────────────┘│
 │                           │ Subprocess                                  │
 │  ┌─────────────────────────────────────────────────────────────────────┐│
