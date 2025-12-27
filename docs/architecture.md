@@ -11,7 +11,8 @@
 │  ┌─────────────────────────────────────────────────────────────────────┐│
 │  │ /generate-text    → Text generation                                 ││
 │  │ /generate-object  → Structured JSON extraction                      ││
-│  │ /stream           → Server-Sent Events                              ││
+│  │ /stream           → Stream text via SSE                             ││
+│  │ /stream-object    → Stream structured JSON via SSE                  ││
 │  │ /health           → Health check                                    ││
 │  └─────────────────────────────────────────────────────────────────────┘│
 │                           │ Subprocess                                  │
@@ -34,6 +35,7 @@ koine/
 │   │       └── routes/
 │   │           ├── generate.ts      # /generate-text, /generate-object
 │   │           ├── stream.ts        # /stream (SSE)
+│   │           ├── stream-object.ts # /stream-object (SSE)
 │   │           └── health.ts        # /health
 │   └── sdks/
 │       ├── typescript/              # TypeScript SDK
@@ -43,6 +45,7 @@ koine/
 │       │       ├── text.ts          # generateText implementation
 │       │       ├── object.ts        # generateObject implementation
 │       │       ├── stream/          # streamText implementation (SSE)
+│       │       ├── stream-object.ts # streamObject implementation (SSE)
 │       │       ├── types.ts         # Type definitions
 │       │       └── errors.ts        # KoineError
 │       └── python/                  # Python SDK
@@ -51,7 +54,7 @@ koine/
 │               ├── client.py        # create_koine factory, KoineClient
 │               ├── text.py          # generate_text implementation
 │               ├── object.py        # generate_object implementation
-│               ├── stream/          # stream_text implementation (SSE)
+│               ├── stream/          # stream_text, stream_object (SSE)
 │               ├── types.py         # Type definitions
 │               └── errors.py        # KoineError
 ├── claude-assets/                   # Skills and commands
@@ -59,3 +62,14 @@ koine/
 ├── Dockerfile
 └── docker-compose.yml
 ```
+
+## Implementation Notes
+
+### Structured Output Strategies
+
+| Endpoint | Strategy | Why |
+|----------|----------|-----|
+| `/generate-object` | `--json-schema` flag | Constrained decoding ensures valid JSON |
+| `/stream-object` | Prompt injection | Claude Code CLI doesn't stream tokens with `--json-schema`; it only emits the final object in the result message |
+
+When Claude Code adds streaming support for `--json-schema`, `/stream-object` can be updated to use constrained decoding. Until then, the gateway uses fallback JSON extraction strategies (markdown code block extraction, regex matching) to handle cases where the model wraps JSON in explanatory text.

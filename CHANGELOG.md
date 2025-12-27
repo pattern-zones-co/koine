@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.2.0](https://github.com/pattern-zones-co/koine/compare/v2.1.0...v2.2.0) (2025-12-27)
+
+
+### Features
+
+* **gateway:** use native --json-schema for structured output ([#68](https://github.com/pattern-zones-co/koine/issues/68)) ([1e14a82](https://github.com/pattern-zones-co/koine/commit/1e14a82fa398a6a7d6aee035e7dc757c1a743fa3))
+* **stream-object:** add /stream-object endpoint with SDK support ([#73](https://github.com/pattern-zones-co/koine/issues/73)) ([9ed751e](https://github.com/pattern-zones-co/koine/commit/9ed751e6edeb2b519b3dabd277bce7da2734e053))
+
+
+### Bug Fixes
+
+* **gateway:** resolve flaky tests from port conflicts and shared state ([#75](https://github.com/pattern-zones-co/koine/issues/75)) ([a34fa7d](https://github.com/pattern-zones-co/koine/commit/a34fa7d64274231da24e3b15170d3d78f588f7a9))
+
 ## [2.1.0](https://github.com/pattern-zones-co/koine/compare/v2.0.4...v2.1.0) (2025-12-26)
 
 
