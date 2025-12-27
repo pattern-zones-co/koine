@@ -32,7 +32,7 @@ const koine = createKoine(config);
 // A complex schema that requires generating substantial content
 const TravelItinerarySchema = z.object({
 	destination: z.string().describe("The travel destination"),
-	duration: z.string().describe("Trip duration (e.g., '5 days')"),
+	duration: z.string().describe("Trip duration (e.g., '3 days')"),
 	bestTimeToVisit: z.string().describe("Recommended season or months"),
 	days: z
 		.array(
@@ -61,8 +61,8 @@ async function main() {
 	console.log("Watch as the itinerary builds incrementally:\n");
 
 	const result = await koine.streamObject({
-		prompt: `Create a detailed 5-day travel itinerary for Tokyo, Japan.
-Include 3-4 activities per day with specific times, locations, and practical tips.
+		prompt: `Create a detailed 3-day travel itinerary for Tokyo, Japan.
+Include 2-3 activities per day with specific times, locations, and practical tips.
 Make sure to include a packing list and budget estimate.`,
 		schema: TravelItinerarySchema,
 	});
@@ -91,7 +91,7 @@ Make sure to include a packing list and budget estimate.`,
 			displayUpdateCount++;
 			console.log(`[Update ${displayUpdateCount}] Building itinerary...`);
 			if (destination) console.log(`  Destination: ${destination}`);
-			if (currentDays > 0) console.log(`  Days planned: ${currentDays}/5`);
+			if (currentDays > 0) console.log(`  Days planned: ${currentDays}/3`);
 			if (packingItems > 0) console.log(`  Packing items: ${packingItems}`);
 			console.log();
 			lastDayCount = currentDays;
