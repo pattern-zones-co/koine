@@ -401,3 +401,65 @@ class TestStreamObject:
         assert len(partials_received) >= 2
         # Should have been cancelled
         assert cancelled is True
+
+    async def test_connection_error_before_stream(
+        self, httpx_mock: HTTPXMock, config: KoineConfig
+    ):
+        """Test that connection errors during request propagate correctly."""
+        import httpx
+
+        # Add an exception that occurs during the request (before streaming)
+        httpx_mock.add_exception(
+            httpx.ReadError("Connection reset by peer"),
+            url="http://localhost:3100/stream-object",
+        )
+
+        koine = create_koine(config)
+
+        with pytest.raises(KoineError) as exc_info:
+            async with koine.stream_object(prompt="test", schema=Person) as result:
+                async for _ in result.partial_object_stream:
+                    pass
+
+        # httpx.ReadError should be caught and wrapped
+        assert "Connection reset by peer" in str(exc_info.value)
+
+    async def test_timeout_error_before_stream(
+        self, httpx_mock: HTTPXMock, config: KoineConfig
+    ):
+        """Test that timeout errors during request propagate correctly."""
+        import httpx
+
+        httpx_mock.add_exception(
+            httpx.ReadTimeout("Read timed out"),
+            url="http://localhost:3100/stream-object",
+        )
+
+        koine = create_koine(config)
+
+        with pytest.raises(KoineError) as exc_info:
+            async with koine.stream_object(prompt="test", schema=Person) as result:
+                async for _ in result.partial_object_stream:
+                    pass
+
+        assert "timed out" in str(exc_info.value).lower()
+
+    async def test_protocol_error_before_stream(
+        self, httpx_mock: HTTPXMock, config: KoineConfig
+    ):
+        """Test that protocol errors during request propagate correctly."""
+        import httpx
+
+        httpx_mock.add_exception(
+            httpx.RemoteProtocolError("Server sent invalid response"),
+            url="http://localhost:3100/stream-object",
+        )
+
+        koine = create_koine(config)
+
+        with pytest.raises(KoineError) as exc_info:
+            async with koine.stream_object(prompt="test", schema=Person) as result:
+                async for _ in result.partial_object_stream:
+                    pass
+
+        assert "invalid response" in str(exc_info.value).lower()

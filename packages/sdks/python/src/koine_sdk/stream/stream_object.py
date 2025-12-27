@@ -221,21 +221,31 @@ class HTTPObjectStreamContext(Generic[T]):
 
         self._client = httpx.AsyncClient(timeout=self._config.timeout)
 
-        self._response = await self._client.send(
-            self._client.build_request(
-                "POST",
-                f"{self._config.base_url}/stream-object",
-                headers=build_headers(self._config.auth_key),
-                json=build_request_body(
-                    system=self._system,
-                    prompt=self._prompt,
-                    schema=json_schema,
-                    sessionId=self._session_id,
-                    model=self._config.model,
+        try:
+            self._response = await self._client.send(
+                self._client.build_request(
+                    "POST",
+                    f"{self._config.base_url}/stream-object",
+                    headers=build_headers(self._config.auth_key),
+                    json=build_request_body(
+                        system=self._system,
+                        prompt=self._prompt,
+                        schema=json_schema,
+                        sessionId=self._session_id,
+                        model=self._config.model,
+                    ),
                 ),
-            ),
-            stream=True,
-        )
+                stream=True,
+            )
+        except httpx.ReadTimeout as e:
+            await self._client.aclose()
+            raise KoineError(f"Request timeout: {e}", "TIMEOUT") from e
+        except httpx.RemoteProtocolError as e:
+            await self._client.aclose()
+            raise KoineError(f"Protocol error: {e}", "NETWORK_ERROR") from e
+        except httpx.ReadError as e:
+            await self._client.aclose()
+            raise KoineError(f"Connection error: {e}", "NETWORK_ERROR") from e
 
         if not self._response.is_success:
             await self._response.aread()

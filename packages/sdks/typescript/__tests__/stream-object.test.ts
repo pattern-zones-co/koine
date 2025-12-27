@@ -625,4 +625,123 @@ describe("streamObject", () => {
 		expect(abortError).toBeDefined();
 		expect(abortError?.name).toBe("AbortError");
 	});
+
+	it("should abort when timeout is exceeded", async () => {
+		// Create a stream with long delays that will exceed timeout
+		const events = [
+			{ event: "session", data: { sessionId: "timeout-session" } },
+			{
+				event: "partial-object",
+				data: { partial: '{"name":"Slow', parsed: { name: "Slow" } },
+			},
+			{ event: "object", data: { object: { name: "Slow", age: 1 } } },
+			{
+				event: "result",
+				data: {
+					sessionId: "timeout-session",
+					usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+				},
+			},
+			{ event: "done", data: { code: 0 } },
+		];
+
+		// Use delayed mock with 500ms delay per event (will exceed 100ms timeout)
+		global.fetch = vi.fn().mockImplementation((_url, options) => {
+			return Promise.resolve(
+				createDelayedMockSSEResponse(events, 500, options?.signal),
+			);
+		});
+
+		const shortTimeoutConfig = { ...testConfig, timeout: 100 };
+
+		const result = await streamObject(shortTimeoutConfig, {
+			prompt: "test",
+			schema: testSchema,
+		});
+
+		// Stream should abort due to timeout
+		let timeoutError: Error | null = null;
+		try {
+			for await (const _ of result.partialObjectStream) {
+				// Should not complete normally
+			}
+		} catch (error) {
+			timeoutError = error as Error;
+		}
+
+		expect(timeoutError).toBeDefined();
+		expect(timeoutError?.name).toBe("AbortError");
+	});
+
+	it("should handle mid-stream connection errors", async () => {
+		// Create a stream that errors mid-way through
+		const encoder = new TextEncoder();
+		let eventIndex = 0;
+		const eventsBeforeError = [
+			{ event: "session", data: { sessionId: "conn-error-session" } },
+			{
+				event: "partial-object",
+				data: { partial: '{"name":"A', parsed: { name: "A" } },
+			},
+		];
+
+		const errorStream = new ReadableStream<Uint8Array>({
+			pull(controller) {
+				if (eventIndex < eventsBeforeError.length) {
+					const { event, data } = eventsBeforeError[eventIndex];
+					const sseData = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+					controller.enqueue(encoder.encode(sseData));
+					eventIndex++;
+				} else {
+					// Simulate connection error mid-stream
+					controller.error(new Error("Connection reset by peer"));
+				}
+			},
+		});
+
+		const errorResponse = {
+			ok: true,
+			status: 200,
+			statusText: "OK",
+			headers: new Headers({ "Content-Type": "text/event-stream" }),
+			body: errorStream,
+			text: vi.fn(),
+			json: vi.fn(),
+			redirected: false,
+			type: "basic",
+			url: "",
+			clone: vi.fn(),
+			bodyUsed: false,
+			arrayBuffer: vi.fn(),
+			blob: vi.fn(),
+			formData: vi.fn(),
+			bytes: vi.fn(),
+		} as unknown as Response;
+
+		global.fetch = vi.fn().mockResolvedValue(errorResponse);
+
+		const result = await streamObject(testConfig, {
+			prompt: "test",
+			schema: testSchema,
+		});
+
+		const partials: unknown[] = [];
+		let connectionError: Error | null = null;
+
+		try {
+			for await (const partial of result.partialObjectStream) {
+				partials.push(partial);
+			}
+		} catch (error) {
+			connectionError = error as Error;
+		}
+
+		// Should have received partial before connection error
+		expect(partials.length).toBe(1);
+		expect(partials[0]).toEqual({ name: "A" });
+
+		// Should have caught the connection error
+		expect(connectionError).toBeDefined();
+		expect(connectionError?.message).toBe("Connection reset by peer");
+	});
 });
