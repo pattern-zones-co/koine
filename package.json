@@ -5,10 +5,7 @@
 	"type": "module",
 	"description": "Koine - HTTP gateway and SDK for Claude Code CLI",
 	"license": "AGPL-3.0-only OR LicenseRef-Commercial",
-	"workspaces": [
-		"packages/*",
-		"packages/sdks/*"
-	],
+	"workspaces": ["packages/*", "packages/sdks/*"],
 	"scripts": {
 		"dev": "bun run --filter '@patternzones/*' dev",
 		"build": "bun run --filter '@patternzones/*' build",
