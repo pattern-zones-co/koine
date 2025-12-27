@@ -63,7 +63,36 @@ components:
           format: email
         schema:
           type: object
-          additionalProperties: {}
+          properties:
+            type:
+              type: string
+              enum: &a1
+                - object
+                - array
+                - string
+                - number
+                - integer
+                - boolean
+                - "null"
+            properties:
+              type: object
+              additionalProperties: {}
+            items: {}
+            $ref:
+              type: string
+            allOf:
+              type: array
+              items: {}
+            anyOf:
+              type: array
+              items: {}
+            oneOf:
+              type: array
+              items: {}
+            enum:
+              type: array
+              items: {}
+            const: {}
         maxTokens:
           type: integer
           exclusiveMinimum: 0
@@ -102,7 +131,29 @@ components:
           format: email
         schema:
           type: object
-          additionalProperties: {}
+          properties:
+            type:
+              type: string
+              enum: *a1
+            properties:
+              type: object
+              additionalProperties: {}
+            items: {}
+            $ref:
+              type: string
+            allOf:
+              type: array
+              items: {}
+            anyOf:
+              type: array
+              items: {}
+            oneOf:
+              type: array
+              items: {}
+            enum:
+              type: array
+              items: {}
+            const: {}
       required:
         - prompt
         - schema
@@ -184,7 +235,7 @@ components:
           type: string
         code:
           type: string
-          enum: &a3
+          enum: &a4
             - VALIDATION_ERROR
             - INTERNAL_ERROR
             - UNKNOWN_ERROR
@@ -203,12 +254,12 @@ components:
       properties:
         status:
           type: string
-          enum: &a1
+          enum: &a2
             - healthy
             - unhealthy
         claudeCli:
           type: string
-          enum: &a2
+          enum: &a3
             - available
             - unavailable
         timestamp:
@@ -267,10 +318,10 @@ paths:
                 properties:
                   status:
                     type: string
-                    enum: *a1
+                    enum: *a2
                   claudeCli:
                     type: string
-                    enum: *a2
+                    enum: *a3
                   timestamp:
                     type: string
                   error:
@@ -318,10 +369,10 @@ paths:
                 properties:
                   status:
                     type: string
-                    enum: *a1
+                    enum: *a2
                   claudeCli:
                     type: string
-                    enum: *a2
+                    enum: *a3
                   timestamp:
                     type: string
                   error:
@@ -459,7 +510,7 @@ paths:
                     type: string
                   code:
                     type: string
-                    enum: *a3
+                    enum: *a4
                   rawText:
                     type: string
                 required:
@@ -498,7 +549,7 @@ paths:
                     type: string
                   code:
                     type: string
-                    enum: *a3
+                    enum: *a4
                   rawText:
                     type: string
                 required:
@@ -531,7 +582,29 @@ paths:
                   format: email
                 schema:
                   type: object
-                  additionalProperties: {}
+                  properties:
+                    type:
+                      type: string
+                      enum: *a1
+                    properties:
+                      type: object
+                      additionalProperties: {}
+                    items: {}
+                    $ref:
+                      type: string
+                    allOf:
+                      type: array
+                      items: {}
+                    anyOf:
+                      type: array
+                      items: {}
+                    oneOf:
+                      type: array
+                      items: {}
+                    enum:
+                      type: array
+                      items: {}
+                    const: {}
                 maxTokens:
                   type: integer
                   exclusiveMinimum: 0
@@ -582,7 +655,7 @@ paths:
                     type: string
                   code:
                     type: string
-                    enum: *a3
+                    enum: *a4
                   rawText:
                     type: string
                 required:
@@ -621,7 +694,7 @@ paths:
                     type: string
                   code:
                     type: string
-                    enum: *a3
+                    enum: *a4
                   rawText:
                     type: string
                 required:
@@ -672,7 +745,7 @@ paths:
                     type: string
                   code:
                     type: string
-                    enum: *a3
+                    enum: *a4
                   rawText:
                     type: string
                 required:
@@ -727,7 +800,29 @@ paths:
                   format: email
                 schema:
                   type: object
-                  additionalProperties: {}
+                  properties:
+                    type:
+                      type: string
+                      enum: *a1
+                    properties:
+                      type: object
+                      additionalProperties: {}
+                    items: {}
+                    $ref:
+                      type: string
+                    allOf:
+                      type: array
+                      items: {}
+                    anyOf:
+                      type: array
+                      items: {}
+                    oneOf:
+                      type: array
+                      items: {}
+                    enum:
+                      type: array
+                      items: {}
+                    const: {}
               required:
                 - prompt
                 - schema
@@ -749,7 +844,7 @@ paths:
                     type: string
                   code:
                     type: string
-                    enum: *a3
+                    enum: *a4
                   rawText:
                     type: string
                 required:
