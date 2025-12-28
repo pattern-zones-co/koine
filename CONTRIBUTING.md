@@ -39,7 +39,9 @@ Hooks skip gracefully if tools aren't installed, but CI will catch issues you mi
 
 ## GitHub Actions
 
-CI runs on all pull requests. Forks need a `CLAUDE_CODE_OAUTH_TOKEN` secret for Claude-powered issue triage.
+CI runs on all pull requests.
+
+You may run into an issue with the issue triage workflow on forks. This workflow requires a long-lived oauth token which you can generate with claude code and add to your github actions secrets.
 
 ## How to Contribute
 
