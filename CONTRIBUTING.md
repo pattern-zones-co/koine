@@ -23,7 +23,7 @@ bun run example:hello
 bun run example:conversation
 ```
 
-The npm scripts load `.env` from the project root. See each SDK's `examples/` directory for all available examples.
+The bun scripts load `.env` from the project root. See each SDK's `examples/` directory for all available examples.
 
 ## Pre-commit Hooks
 
@@ -54,10 +54,13 @@ That's it. We'll figure out the details together.
 
 Looking for ideas? Here are improvements we'd love help with:
 
-- ~~**Concurrency limits** - Limit concurrent CLI subprocesses to prevent resource exhaustion~~ ✅ Done!
-- **Response caching** - Cache identical prompts
-- ~~**Python SDK** - Port the TypeScript SDK to Python ([#2](https://github.com/pattern-zones-co/koine/issues/2))~~ ✅ Done!
+- ~~**Concurrency limits** - Limit concurrent CLI subprocesses to prevent resource exhaustion~~ Done!
+- ~~**Python SDK** - Port the TypeScript SDK to Python ([#2](https://github.com/pattern-zones-co/koine/issues/2))~~ Done!
+- ~~**allowedTools** - Implement allowedTools and disallowedTools at the gateway level~~ Done!
 - **Docker Hardened Images** - Migrate to zero-CVE base images ([#1](https://github.com/pattern-zones-co/koine/issues/1))
+- **Other language SDKs** - We don't have a need for a Go or Rust koine-client yet, but maybe you do?
+- **Automatic retries** - The client SDKs could get a feature to retry requests.
+  Responses could be invalid or requests could be denied due to concurrency limits.
 
 Have a different idea? Open an issue and let's discuss.
 
